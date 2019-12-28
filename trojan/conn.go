@@ -13,7 +13,7 @@ func Dial(addr string, tlsCfg *tls.Config, raw, secret, payload []byte, udpEnabl
 		return nil, fmt.Errorf("tls dial failed %v", err.Error())
 	}
 
-	if _, err = conn.Write(EncodeRequest(secret, raw, payload, udpEnable)); err != nil {
+	if _, err = conn.Write(EncodePacket(secret, raw, payload, udpEnable)); err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("tls dial remote write failed %v", err.Error())
 	}
