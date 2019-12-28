@@ -73,26 +73,26 @@ func (h *handle) handler(c net.Conn) {
 	}
 
 	b = b[:n]
-	if n < cmdPrefixLen {
+	if n < frameOffsetType {
 		h.Errorf("packet short %v", n)
 		h.frontPage(c, b)
 		return
 	}
-	first := bytes.Index(b[:cmdPrefixLen], CRLF)
-	if first < 0 || first != passwordPrefixLen {
+	first := bytes.Index(b[:frameOffsetType], CRLF)
+	if first < 0 || first != frameOffsetPassword {
 		h.Errorf("packet err %v", first)
 		h.frontPage(c, b)
 		return
 	}
 
-	password := b[:passwordPrefixLen]
+	password := b[:frameOffsetPassword]
 	if !h.Auth(password) { // user auth
 		h.Errorf("auth failed %v", string(password))
 		h.frontPage(c, b)
 		return
 	}
 
-	after := b[cmdPrefixLen:]
+	after := b[frameOffsetType:]
 	second := bytes.Index(after, CRLF)
 	if second < 0 {
 		h.Errorf("second read err %v", second)
@@ -107,7 +107,7 @@ func (h *handle) handler(c net.Conn) {
 		return
 	}
 
-	prefixLen := cmdPrefixLen + second + 2
+	prefixLen := frameOffsetType + second + 2
 	var payload []byte
 	if prefixLen < n {
 		payload = b[prefixLen:]

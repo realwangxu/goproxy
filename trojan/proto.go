@@ -11,9 +11,9 @@ const (
 )
 
 const (
-	passwordPrefixLen = 56
-	cmdPrefixLen      = 58
-	addrPrefixLen     = 59
+	frameOffsetPassword = 56
+	frameOffsetType     = 58
+	frameOffsetAddr     = 59
 )
 
 type Request struct {
@@ -26,7 +26,7 @@ type Request struct {
 func EncodePacket(password, addr, payload []byte, udpEnable bool) []byte {
 	pwdLen := len(password)
 	addrLen := len(addr)
-	prefixLen := addrPrefixLen + addrLen
+	prefixLen := frameOffsetAddr + addrLen
 	payloadLen := 0
 	if payload != nil {
 		payloadLen = len(payload)
@@ -34,18 +34,18 @@ func EncodePacket(password, addr, payload []byte, udpEnable bool) []byte {
 	var req []byte
 	if !udpEnable {
 		req = make([]byte, pwdLen+addrLen+payloadLen+2+1+2) // CRLF, CRLF, TCP
-		req[cmdPrefixLen] = CmdConnect
+		req[frameOffsetType] = CmdConnect
 	} else {
 		req = make([]byte, pwdLen+addrLen+payloadLen+2+1+2+2) // CRLF, CRLF, TCP, length
-		req[cmdPrefixLen] = CmdUDPAssociate
+		req[frameOffsetType] = CmdUDPAssociate
 		req[prefixLen] = byte(payloadLen >> 8)
 		req[prefixLen+1] = byte(payloadLen)
 		prefixLen += 2
 	}
 
 	copy(req, password)
-	copy(req[passwordPrefixLen:], CRLF)
-	copy(req[addrPrefixLen:], addr)
+	copy(req[frameOffsetPassword:], CRLF)
+	copy(req[frameOffsetAddr:], addr)
 	copy(req[prefixLen:], CRLF)
 	if payload != nil {
 		copy(req[prefixLen+2:], payload)
