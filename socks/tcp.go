@@ -1,23 +1,24 @@
 package socks
 
 import (
-	"fmt"
 	"net"
 )
 
-func (h *handle) listen() error {
+func (h *handle) listen() {
 	l, err := net.Listen("tcp", h.Addr)
 	if err != nil {
-		return fmt.Errorf("listen tcp err: %v", err.Error())
+		h.Errorf("listen tcp err: %v", err.Error())
+		return
 	}
 
+	h.addTCP()
 	go h.accept(l)
-
-	return nil
 }
 
 func (h *handle) accept(l net.Listener) {
+	defer h.removeTCP()
 	defer l.Close()
+
 	for {
 		c, err := l.Accept()
 		if err != nil {
@@ -30,8 +31,6 @@ func (h *handle) accept(l net.Listener) {
 
 		go h.handler(c)
 	}
-
-	return
 }
 
 func (h *handle) handler(c net.Conn) {

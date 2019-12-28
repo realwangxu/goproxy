@@ -4,21 +4,26 @@ import (
 	"net"
 )
 
-func (h *handle) udpSocksLocal(addr, server string) {
-	c, err := net.ListenPacket("udp", addr)
+func (h *handle) udpSocksLocal() {
+	c, err := net.ListenPacket("udp", h.Addr)
 	if err != nil {
 		h.Errorf("UDP local listen error: %v", err)
 		return
 	}
+	defer h.removeUDP()
 	defer c.Close()
 
+	h.addUDP()
 	buf := make([]byte, UdpBufSize)
 
 	for {
 		n, _, err := c.ReadFrom(buf)
 		if err != nil {
+			if er, ok := err.(*net.OpError); ok && er.Timeout() {
+				continue // ignore i/o timeout
+			}
 			h.Errorf("UDP local read error: %v", err)
-			continue
+			return
 		}
 
 		if n < 3 {
