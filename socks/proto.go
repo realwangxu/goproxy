@@ -19,4 +19,5 @@ const MaxAddrLen = 1 + 1 + 255 + 2
 
 const (
 	Version5 byte = 0x05
+	Version4 byte = 0x04
 )
