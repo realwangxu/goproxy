@@ -2,7 +2,6 @@ package socks
 
 import (
 	"fmt"
-	"httptunnel"
 	"net"
 )
 
@@ -79,7 +78,7 @@ func (h *handle) handler(c net.Conn) {
 		h.Errorf("socks4 failed!")
 		return
 	default:
-		addrType, addr, raw, err = httptunnel.OnceAccept(first, c)
+		addrType, addr, raw, err = h.HttpAccept(first, c)
 		if err == nil {
 			host, port, err = net.SplitHostPort(addr)
 		}
