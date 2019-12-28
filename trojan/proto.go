@@ -24,31 +24,42 @@ type Request struct {
 }
 
 func EncodePacket(password, addr, payload []byte, udpEnable bool) []byte {
-	pwdLen := len(password)
+	if password == nil || addr == nil {
+		return nil
+	}
+	if udpEnable && payload == nil {
+		return nil
+	}
+
 	addrLen := len(addr)
-	prefixLen := frameOffsetAddr + addrLen
 	payloadLen := 0
 	if payload != nil {
 		payloadLen = len(payload)
 	}
-	var req []byte
-	if !udpEnable {
-		req = make([]byte, pwdLen+addrLen+payloadLen+2+1+2) // CRLF, CRLF, TCP
-		req[frameOffsetType] = CmdConnect
-	} else {
-		req = make([]byte, pwdLen+addrLen+payloadLen+2+1+2+2) // CRLF, CRLF, TCP, length
-		req[frameOffsetType] = CmdUDPAssociate
-		req[prefixLen] = byte(payloadLen >> 8)
-		req[prefixLen+1] = byte(payloadLen)
-		prefixLen += 2
+	reqLen := len(password) + 2 + 1 + addrLen + 2 + payloadLen
+	if udpEnable {
+		reqLen += 2
 	}
 
+	req := make([]byte, reqLen)
 	copy(req, password)
 	copy(req[frameOffsetPassword:], CRLF)
+	if !udpEnable {
+		req[frameOffsetType] = CmdConnect
+	} else {
+		req[frameOffsetType] = CmdUDPAssociate
+	}
 	copy(req[frameOffsetAddr:], addr)
-	copy(req[prefixLen:], CRLF)
+	offset := frameOffsetAddr + addrLen
+	if udpEnable {
+		req[offset] = byte(payloadLen >> 8)
+		req[offset+1] = byte(payloadLen)
+		offset += 2
+	}
+	copy(req[offset:], CRLF)
+	offset += 2
 	if payload != nil {
-		copy(req[prefixLen+2:], payload)
+		copy(req[offset:], payload)
 	}
 
 	return req
