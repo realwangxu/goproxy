@@ -12,8 +12,8 @@ type logFunc func(string, ...interface{})
 // auth password
 type authFunc func([]byte) bool
 
-// local net.Conn, passowrd, addr, payload []byte
-type srvFunc func(net.Conn, []byte, []byte, []byte)
+// buf []byte, connection...
+type srvFunc func([]byte, net.Conn)
 
 type handle struct {
 	front     string
@@ -92,28 +92,7 @@ func (h *handle) handler(c net.Conn) {
 		return
 	}
 
-	after := b[frameOffsetType:]
-	second := bytes.Index(after, CRLF)
-	if second < 0 {
-		h.Errorf("second read err %v", second)
-		return
-	}
-
-	addr := after[:second]
-	cmd := addr[0]
-	switch cmd {
-	case CmdConnect, CmdUDPAssociate:
-	default:
-		return
-	}
-
-	prefixLen := frameOffsetType + second + 2
-	var payload []byte
-	if prefixLen < n {
-		payload = b[prefixLen:]
-	}
-
-	h.Srv(c, password, addr, payload)
+	h.Srv(b[frameOffsetType:], c)
 }
 
 // forward http server

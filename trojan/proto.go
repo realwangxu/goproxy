@@ -64,3 +64,23 @@ func EncodePacket(password, addr, payload []byte, udpEnable bool) []byte {
 
 	return req
 }
+
+func EncodeUdpPacket(addr, payload []byte) []byte {
+	if addr == nil || payload == nil {
+		return nil
+	}
+
+	addrLen := len(addr)
+	payloadLen := len(payload)
+	b := make([]byte, addrLen+2+2+payloadLen)
+	copy(b, addr)
+	offset := addrLen
+	b[offset] = byte(payloadLen >> 8)
+	b[offset+1] = byte(payloadLen)
+	offset += 2
+	copy(b[offset:], CRLF)
+	offset += 2
+	copy(b[offset:], payload)
+
+	return b
+}
