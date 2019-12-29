@@ -17,7 +17,7 @@ func (h *handle) listenUDP() {
 	buf := make([]byte, UdpBufSize)
 
 	for {
-		n, _, err := c.ReadFrom(buf)
+		n, raddr, err := c.ReadFrom(buf)
 		if err != nil {
 			if er, ok := err.(*net.OpError); ok && er.Timeout() {
 				continue // ignore i/o timeout
@@ -30,15 +30,14 @@ func (h *handle) listenUDP() {
 			continue
 		}
 
-		raddr := SplitAddr(buf[3:n])
-		if raddr == nil {
+		addr := SplitAddr(buf[3:n])
+		if addr == nil {
 			continue
 		}
-		if n <= len(raddr)+3 {
+		if n <= len(addr)+3 {
 			continue
 		}
 
-		payload := buf[3+len(raddr) : n]
-		h.CreatePacketConn(raddr, payload, c) // 第一件事就是发出去，否则会导致数据被覆盖掉
+		h.CreatePacketConn(raddr, buf[3:n], c) // 第一件事就是发出去，否则会导致数据被覆盖掉
 	}
 }

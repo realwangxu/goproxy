@@ -12,7 +12,7 @@ type httpAcceptFunc func(byte, net.Conn) (byte, string, []byte, error)
 
 // host, raw, net.Conn
 type createRemoteConnFunc func(string, []byte, net.Conn) (net.Conn, error)
-type createPacketConnFunc func([]byte, []byte, net.PacketConn)
+type createPacketConnFunc func(net.Addr, []byte, net.PacketConn)
 type matchHostsFunc func(string) string
 type matchRuleFunc func(string, byte) (string, string)
 type logFunc func(string, ...interface{})
