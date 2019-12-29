@@ -12,7 +12,7 @@ func (h *handle) listen() {
 	}
 
 	h.addTCP()
-	go h.accept(l)
+	h.accept(l)
 }
 
 func (h *handle) accept(l net.Listener) {

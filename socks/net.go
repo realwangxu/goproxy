@@ -45,7 +45,6 @@ func New(addr string, accept httpAcceptFunc, matchHosts matchHostsFunc, matchRul
 
 func (h *handle) ListenAndSrv() {
 	h.run()
-	h.runUDP()
 }
 
 func (h *handle) removeTCP() { h.flag &= flagUDP }
@@ -58,12 +57,9 @@ func (h *handle) addUDP() { h.flag |= flagUDP }
 
 func (h *handle) run() {
 	if h.flag&flagTCP != flagTCP {
-		h.listen()
+		go h.listen()
 	}
-}
-
-func (h *handle) runUDP() {
 	if h.flag&flagUDP != flagUDP {
-		h.udpSocksLocal()
+		go h.listenUDP()
 	}
 }

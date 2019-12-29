@@ -4,7 +4,7 @@ import (
 	"net"
 )
 
-func (h *handle) udpSocksLocal() {
+func (h *handle) listenUDP() {
 	c, err := net.ListenPacket("udp", h.Addr)
 	if err != nil {
 		h.Errorf("UDP local listen error: %v", err)

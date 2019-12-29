@@ -15,5 +15,4 @@ func (h *handle) UpdateTicker() {
 
 func (h *handle) handlerTicker() {
 	h.run()
-	h.runUDP()
 }
