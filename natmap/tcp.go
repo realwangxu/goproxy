@@ -9,33 +9,33 @@ import (
 )
 
 // Packet NAT table
-type TCPnatmap struct {
+type TcpNatmap struct {
 	sync.RWMutex
 	m       map[string]net.Conn
 	timeout time.Duration
 }
 
-func newNATmap(timeout time.Duration) *TCPnatmap {
-	m := &TCPnatmap{}
+func newTcpNATmap(timeout time.Duration) *TcpNatmap {
+	m := &TcpNatmap{}
 	m.m = make(map[string]net.Conn)
 	m.timeout = timeout
 	return m
 }
 
-func (m *TCPnatmap) Get(key string) net.Conn {
+func (m *TcpNatmap) Get(key string) net.Conn {
 	m.RLock()
 	defer m.RUnlock()
 	return m.m[key]
 }
 
-func (m *TCPnatmap) Set(key string, pc net.Conn) {
+func (m *TcpNatmap) Set(key string, pc net.Conn) {
 	m.Lock()
 	defer m.Unlock()
 
 	m.m[key] = pc
 }
 
-func (m *TCPnatmap) Del(key string) net.Conn {
+func (m *TcpNatmap) Del(key string) net.Conn {
 	m.Lock()
 	defer m.Unlock()
 
@@ -47,7 +47,7 @@ func (m *TCPnatmap) Del(key string) net.Conn {
 	return nil
 }
 
-func (m *TCPnatmap) Add(peer net.Addr, dst net.PacketConn, src net.Conn, role mode) {
+func (m *TcpNatmap) Add(peer net.Addr, dst net.PacketConn, src net.Conn, role mode) {
 	m.Set(peer.String(), src)
 
 	go func() {
@@ -59,7 +59,7 @@ func (m *TCPnatmap) Add(peer net.Addr, dst net.PacketConn, src net.Conn, role mo
 }
 
 // copy from src to dst at target with read timeout
-func (m *TCPnatmap) timedCopy(dst net.PacketConn, target net.Addr, src net.Conn, timeout time.Duration, role mode) error {
+func (m *TcpNatmap) timedCopy(dst net.PacketConn, target net.Addr, src net.Conn, timeout time.Duration, role mode) error {
 	buf := make([]byte, socks.UdpBufSize)
 
 	for {
