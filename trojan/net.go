@@ -92,7 +92,7 @@ func (h *handle) handler(c net.Conn) {
 		return
 	}
 
-	h.Srv(b[frameOffsetType:], c)
+	h.Srv(b[:n], c)
 }
 
 // forward http server
