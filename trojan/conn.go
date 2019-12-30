@@ -5,9 +5,9 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/koomox/goproxy/socks"
 	"io"
 	"net"
-	"socks"
 )
 
 func Dial(addr string, tlsCfg *tls.Config, payload []byte) (net.Conn, error) {
@@ -25,7 +25,13 @@ func Dial(addr string, tlsCfg *tls.Config, payload []byte) (net.Conn, error) {
 	return conn, nil
 }
 
-func Parse(b []byte, c net.Conn) (payload, buf []byte, err error) {
+// +------+----------+----------+--------+---------+----------+
+//| ATYP | DST.ADDR | DST.PORT | Length |  CRLF   | Payload  |
+//+------+----------+----------+--------+---------+----------+
+//|  1   | Variable |    2     |   2    | X'0D0A' | Variable |
+//+------+----------+----------+--------+---------+----------+
+// UDP ASSOCIATE
+func ParseUDP(b []byte, c net.Conn) (address string, payload, buf []byte, err error) {
 	addr := socks.SplitAddr(b)
 	if addr == nil {
 		err = errors.New("parse failed socks addr err")
@@ -46,19 +52,24 @@ func Parse(b []byte, c net.Conn) (payload, buf []byte, err error) {
 		return
 	}
 	offset += 2
-	r := n - offset - payloadLen
-	if r == 0 {
-
-	}
-	if r < 0 {
-		payload = make([]byte, offset+payloadLen)
-		if n, err = io.ReadFull(c, payload[offset:]); err != nil {
+	buffer := b[offset:]
+	bufferLen := len(buffer)
+	if bufferLen < payloadLen {
+		payload = make([]byte, payloadLen)
+		copy(payload, buffer)
+		if _, err = io.ReadFull(c, payload[bufferLen:]); err != nil {
 			return
 		}
 		return
 	}
-
-	if r > 0 {
-
+	if bufferLen > payloadLen {
+		payload = buffer[:payloadLen]
+		buf = buffer[payloadLen:]
+		return
 	}
+
+	_, host, port := addr.Parse()
+	address = net.JoinHostPort(host, port)
+	payload = buffer
+	return
 }

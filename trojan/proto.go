@@ -1,5 +1,10 @@
 package trojan
 
+import (
+	"bytes"
+	"github.com/koomox/goproxy/socks"
+)
+
 var (
 	CRLF = []byte{0x0D, 0x0A}
 )
@@ -83,4 +88,35 @@ func EncodeUdpPacket(addr, payload []byte) []byte {
 	copy(b[offset:], payload)
 
 	return b
+}
+
+func ParsePacket(b []byte) (addr, payload []byte) {
+	address := socks.SplitAddr(b)
+	if address == nil {
+		return
+	}
+
+	addrLen := len(address)
+	n := len(b)
+	offset := addrLen
+	if n < offset+2+2 {
+		return
+	}
+
+	payloadLen := int(b[offset])<<8 | int(b[offset+1])
+	offset += 2
+	br := b[offset:]
+	if !bytes.Equal(br[:2], CRLF) {
+		return
+	}
+
+	offset += 2
+	buffer := b[offset:]
+	bufferLen := len(buffer)
+	if bufferLen >= payloadLen {
+		payload = buffer[:payloadLen]
+		addr = address
+	}
+
+	return
 }
