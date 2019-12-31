@@ -15,7 +15,7 @@ type TcpNatmap struct {
 	timeout time.Duration
 }
 
-func newTcpNATmap(timeout time.Duration) *TcpNatmap {
+func NewTcpNatmap(timeout time.Duration) *TcpNatmap {
 	m := &TcpNatmap{}
 	m.m = make(map[string]net.Conn)
 	m.timeout = timeout
@@ -74,14 +74,14 @@ func (m *TcpNatmap) timedCopy(dst net.PacketConn, target net.Addr, src net.Conn,
 		}
 
 		switch role {
-		case remoteServer: // server -> client: add original packet source
+		case RemoteServer: // server -> client: add original packet source
 			srcAddr := socks.ParseAddr(target.String())
 			copy(buf[len(srcAddr):], buf[:n])
 			copy(buf, srcAddr)
 			_, err = dst.WriteTo(buf[:len(srcAddr)+n], target)
-		case relayClient: // client -> user: strip original packet source
+		case RelayClient: // client -> user: strip original packet source
 			_, err = dst.WriteTo(append(addr, payload...), target)
-		case socksClient: // client -> socks5 program: just set RSV and FRAG = 0
+		case SocksClient: // client -> socks5 program: just set RSV and FRAG = 0
 			b := append([]byte{0, 0, 0}, addr...)
 			_, err = dst.WriteTo(append(b, payload...), target)
 		}

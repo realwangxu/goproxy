@@ -3,9 +3,9 @@ package natmap
 type mode int
 
 const (
-	remoteServer mode = iota
-	relayClient
-	socksClient
+	RemoteServer mode = iota
+	RelayClient
+	SocksClient
 )
 
 const udpBufSize = 64 * 1024
