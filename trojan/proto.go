@@ -28,6 +28,39 @@ type Request struct {
 	udpEnable bool
 }
 
+func Generate(password, addr, payload []byte, cmd byte) []byte {
+	if password == nil || addr == nil {
+		return nil
+	}
+	if cmd == CmdUDPAssociate && payload == nil {
+		return nil
+	}
+	var buf bytes.Buffer
+	buf.Write(password)
+	buf.Write(CRLF)
+	switch cmd {
+	case CmdConnect:
+		buf.WriteByte(CmdConnect)
+	case CmdUDPAssociate:
+		buf.WriteByte(CmdUDPAssociate)
+	default:
+		return nil
+	}
+	buf.Write(addr)
+	payloadLen := len(payload)
+	switch cmd {
+	case CmdUDPAssociate:
+		buf.WriteByte(byte(payloadLen >> 8))
+		buf.WriteByte(byte(payloadLen & 0xFF))
+	}
+	buf.Write(CRLF)
+	if payload != nil {
+		buf.Write(payload)
+	}
+
+	return buf.Bytes()
+}
+
 func EncodePacket(password, addr, payload []byte, udpEnable bool) []byte {
 	if password == nil || addr == nil {
 		return nil
