@@ -64,14 +64,14 @@ func (m *UdpNatmap) timedCopy(dst net.Conn, target net.Addr, src net.PacketConn,
 
 	for {
 		src.SetReadDeadline(time.Now().Add(timeout))
-		n, _, err := src.ReadFrom(buf)
+		n, raddr, err := src.ReadFrom(buf)
 		if err != nil {
 			return err
 		}
 
 		switch role {
 		case RemoteServer: // server -> client: add original packet source
-			srcAddr := socks.ParseAddr(target.String())
+			srcAddr := socks.ParseAddr(raddr.String())
 			_, err = dst.Write(trojan.EncodeUdpPacket(srcAddr, buf[:n]))
 		case RelayClient: // client -> user: strip original packet source
 			srcAddr := socks.SplitAddr(buf[:n])
