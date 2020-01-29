@@ -60,25 +60,41 @@ func (m *TcpNatmap) Add(peer net.Addr, dst net.PacketConn, src net.Conn, role mo
 
 // copy from src to dst at target with read timeout
 func (m *TcpNatmap) timedCopy(dst net.PacketConn, target net.Addr, src net.Conn, timeout time.Duration, role mode) error {
-	buf := make([]byte, socks.UdpBufSize)
-
+	var (
+		buf      []byte
+		buffer   []byte
+		addr     []byte
+		payload  []byte
+		buffered []byte
+		err      error
+	)
+	buf = make([]byte, socks.UdpBufSize)
 	for {
-		src.SetReadDeadline(time.Now().Add(timeout))
-		n, err := src.Read(buf)
+		if buffered == nil {
+			src.SetReadDeadline(time.Now().Add(timeout))
+			n, err := src.Read(buf)
+			if err != nil {
+				return err
+			}
+			buffer = buf[:n]
+		} else {
+			buffer = buffered
+			buffered = nil
+		}
+		addr, payload, buffered, err = trojan.ReadUDPacket(buffer, src)
+		if addr == nil || payload == nil {
+			return errors.New("parse failed")
+		}
 		if err != nil {
 			return err
-		}
-		addr, payload := trojan.ParsePacket(buf[:n])
-		if addr == nil || payload == nil {
-			return nil
 		}
 
 		switch role {
 		case RemoteServer: // server -> client: add original packet source
 			srcAddr := socks.ParseAddr(target.String())
-			copy(buf[len(srcAddr):], buf[:n])
+			copy(buf[len(srcAddr):], buf)
 			copy(buf, srcAddr)
-			_, err = dst.WriteTo(buf[:len(srcAddr)+n], target)
+			_, err = dst.WriteTo(buf[:len(srcAddr)], target)
 		case RelayClient: // client -> user: strip original packet source
 			_, err = dst.WriteTo(append(addr, payload...), target)
 		case SocksClient: // client -> socks5 program: just set RSV and FRAG = 0
