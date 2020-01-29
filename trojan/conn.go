@@ -1,12 +1,8 @@
 package trojan
 
 import (
-	"bytes"
 	"crypto/tls"
-	"errors"
 	"fmt"
-	"github.com/koomox/goproxy/socks"
-	"io"
 	"net"
 )
 
