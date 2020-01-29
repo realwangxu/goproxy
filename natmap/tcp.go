@@ -47,7 +47,7 @@ func (m *TcpNatmap) Del(key string) net.Conn {
 	return nil
 }
 
-func (m *TcpNatmap) Add(peer net.Addr, dst net.PacketConn, src net.Conn, role mode) {
+func (m *TcpNatmap) Add(peer net.Addr, dst net.PacketConn, src net.Conn, role byte) {
 	m.Set(peer.String(), src)
 
 	go func() {
@@ -59,7 +59,7 @@ func (m *TcpNatmap) Add(peer net.Addr, dst net.PacketConn, src net.Conn, role mo
 }
 
 // copy from src to dst at target with read timeout
-func (m *TcpNatmap) timedCopy(dst net.PacketConn, target net.Addr, src net.Conn, timeout time.Duration, role mode) error {
+func (m *TcpNatmap) timedCopy(dst net.PacketConn, target net.Addr, src net.Conn, timeout time.Duration, role byte) error {
 	var (
 		buf      []byte
 		buffer   []byte

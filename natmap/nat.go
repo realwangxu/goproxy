@@ -46,7 +46,7 @@ func (m *Natmap) Del(key string) net.PacketConn {
 	return nil
 }
 
-func (m *Natmap) Add(peer net.Addr, dst, src net.PacketConn, role mode) {
+func (m *Natmap) Add(peer net.Addr, dst, src net.PacketConn, role byte) {
 	m.Set(peer.String(), src)
 
 	go func() {
@@ -58,7 +58,7 @@ func (m *Natmap) Add(peer net.Addr, dst, src net.PacketConn, role mode) {
 }
 
 // copy from src to dst at target with read timeout
-func (m *Natmap) timedCopy(dst net.PacketConn, target net.Addr, src net.PacketConn, timeout time.Duration, role mode) error {
+func (m *Natmap) timedCopy(dst net.PacketConn, target net.Addr, src net.PacketConn, timeout time.Duration, role byte) error {
 	buf := make([]byte, udpBufSize)
 
 	for {
