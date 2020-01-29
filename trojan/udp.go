@@ -8,6 +8,13 @@ import (
 	"net"
 )
 
+// +------+----------+----------+--------+---------+----------+
+//| ATYP | DST.ADDR | DST.PORT | Length |  CRLF   | Payload  |
+//+------+----------+----------+--------+---------+----------+
+//|  1   | Variable |    2     |   2    | X'0D0A' | Variable |
+//+------+----------+----------+--------+---------+----------+
+// UDP ASSOCIATE
+
 func MakeUDPacket(addr, payload []byte) []byte {
 	if addr == nil || payload == nil {
 		return nil
