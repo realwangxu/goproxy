@@ -161,10 +161,11 @@ func ParseUDPPacket(b []byte, c net.Conn) (addr, payload, buffered []byte, err e
 	var (
 		buf    []byte
 		buffer []byte
+		n      int
 	)
 	if b == nil {
 		buf = make([]byte, socks.UdpBufSize)
-		n, err := c.Read(buf)
+		n, err = c.Read(buf)
 		if err != nil {
 			return
 		}
@@ -182,7 +183,7 @@ func ParseUDPPacket(b []byte, c net.Conn) (addr, payload, buffered []byte, err e
 	bLen := len(buffer)
 	if bLen < 4 {
 		buf = make([]byte, socks.UdpBufSize)
-		n, err := c.Read(buf[bLen:])
+		n, err = c.Read(buf[bLen:])
 		if err != nil {
 			return
 		}
@@ -206,7 +207,7 @@ func ParseUDPPacket(b []byte, c net.Conn) (addr, payload, buffered []byte, err e
 	bLen = len(buffer)
 	if bLen < payloadLen {
 		buf = make([]byte, payloadLen)
-		n, err := io.ReadFull(c, buf[bLen:])
+		n, err = io.ReadFull(c, buf[bLen:])
 		if err != nil {
 			return
 		}
@@ -221,7 +222,9 @@ func ParseUDPPacket(b []byte, c net.Conn) (addr, payload, buffered []byte, err e
 
 	payload = buffer[:payloadLen]
 	if bLen > payloadLen {
-		buffered = buffer[payloadLen:]
+		buf = buffer[payloadLen:]
+		buffered = make([]byte, len(buf))
+		copy(buffered, buf)
 	}
 
 	return
