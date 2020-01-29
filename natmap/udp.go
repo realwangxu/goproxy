@@ -72,10 +72,10 @@ func (m *UdpNatmap) timedCopy(dst net.Conn, target net.Addr, src net.PacketConn,
 		switch role {
 		case RemoteServer: // server -> client: add original packet source
 			srcAddr := socks.ParseAddr(raddr.String())
-			_, err = dst.Write(trojan.EncodeUdpPacket(srcAddr, buf[:n]))
+			_, err = dst.Write(trojan.MakeUDPacket(srcAddr, buf[:n]))
 		case RelayClient: // client -> user: strip original packet source
 			srcAddr := socks.SplitAddr(buf[:n])
-			_, err = dst.Write(trojan.EncodeUdpPacket(srcAddr, buf[:n]))
+			_, err = dst.Write(trojan.MakeUDPacket(srcAddr, buf[:n]))
 		case SocksClient: // client -> socks5 program: just set RSV and FRAG = 0
 			_, err = dst.Write(buf[:n])
 		}
