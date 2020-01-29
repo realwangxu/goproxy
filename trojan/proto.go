@@ -20,13 +20,6 @@ const (
 	frameOffsetAddr     = 59
 )
 
-type Request struct {
-	password  []byte
-	addr      []byte
-	payload   []byte
-	udpEnable bool
-}
-
 func NewRequest(password, addr, payload []byte, cmd byte) []byte {
 	if password == nil || addr == nil {
 		return nil
