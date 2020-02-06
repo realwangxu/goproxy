@@ -6,47 +6,46 @@ import (
 	"net"
 )
 
-// error log func
-type logFunc func(string, ...interface{})
+type Logger interface {
+	Info(...interface{})
+	Infof(string, ...interface{})
+	Error(...interface{})
+	Errorf(string, ...interface{})
+}
 
-// auth password
-type authFunc func([]byte) bool
+type Worker interface {
+	Auth([]byte) bool
+	Srv([]byte, net.Conn)
+}
 
-// buf []byte, connection...
-type srvFunc func([]byte, net.Conn)
-
-type handle struct {
+type trojan struct {
 	front     string
 	addr      string
 	domain    string
 	tlsConfig *tls.Config
-	Auth      authFunc
-	Srv       srvFunc
-	Errorf    logFunc
-	Infof     logFunc
+	worker    Worker
+	log       Logger
 }
 
-func New(front, addr, domain string, tlsConfig *tls.Config, auth authFunc, srv srvFunc, err, info logFunc) *handle {
-	return &handle{
+func New(front, addr, domain string, tlsConfig *tls.Config, worker Worker, log Logger) *trojan {
+	return &trojan{
 		front:     front,
 		addr:      addr,
 		domain:    domain,
 		tlsConfig: tlsConfig,
-		Auth:      auth,
-		Srv:       srv,
-		Errorf:    err,
-		Infof:     info,
+		worker:    worker,
+		log:       log,
 	}
 }
 
-func (h *handle) ListenAndSrv() {
-	l, err := tls.Listen("tcp", h.addr, h.tlsConfig)
+func (p *trojan) ListenAndSrv() {
+	l, err := tls.Listen("tcp", p.addr, p.tlsConfig)
 	if err != nil {
-		h.Errorf("Listen %v failed %v", h.addr, err.Error())
+		p.log.Errorf("Listen %v failed %v", p.addr, err.Error())
 		return
 	}
 
-	h.Infof("Starting Listen TCP %v %v ...", h.domain, h.addr)
+	p.log.Infof("Starting Listen TCP %v %v ...", p.domain, p.addr)
 
 	for {
 		c, err := l.Accept()
@@ -54,50 +53,50 @@ func (h *handle) ListenAndSrv() {
 			if netErr, ok := err.(net.Error); ok && netErr.Temporary() {
 				continue
 			}
-			h.Errorf("Accept failed %v", err.Error())
+			p.log.Errorf("Accept failed %v", err.Error())
 			break
 		}
 
-		go h.handler(c)
+		go p.handler(c)
 	}
 }
 
-func (h *handle) handler(c net.Conn) {
+func (p *trojan) handler(c net.Conn) {
 	defer c.Close()
 
 	b := make([]byte, 1024)
 	n, err := c.Read(b)
 	if err != nil {
-		h.Errorf("first read err %v", err.Error())
+		p.log.Errorf("first read err %v", err.Error())
 		return
 	}
 
 	b = b[:n]
 	if n < frameOffsetType {
-		h.Errorf("packet short %v", n)
-		h.frontPage(c, b)
+		p.log.Errorf("packet short %v", n)
+		p.frontPage(c, b)
 		return
 	}
 	first := bytes.Index(b[:frameOffsetType], CRLF)
 	if first < 0 || first != frameOffsetPassword {
-		h.Errorf("packet err %v", first)
-		h.frontPage(c, b)
+		p.log.Errorf("packet err %v", first)
+		p.frontPage(c, b)
 		return
 	}
 
 	password := b[:frameOffsetPassword]
-	if !h.Auth(password) { // user auth
-		h.Errorf("auth failed %v", string(password))
-		h.frontPage(c, b)
+	if !p.worker.Auth(password) { // user auth
+		p.log.Errorf("auth failed %v", string(password))
+		p.frontPage(c, b)
 		return
 	}
 
-	h.Srv(b[:n], c)
+	p.worker.Srv(b[:n], c)
 }
 
 // forward http server
-func (h *handle) frontPage(c net.Conn, b []byte) {
-	rc, err := net.Dial("tcp", h.front)
+func (p *trojan) frontPage(c net.Conn, b []byte) {
+	rc, err := net.Dial("tcp", p.front)
 	if err != nil {
 		return
 	}
@@ -112,6 +111,6 @@ func (h *handle) frontPage(c net.Conn, b []byte) {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
 			return // ignore i/o timeout
 		}
-		h.Errorf("relay error: %v", err)
+		p.log.Errorf("relay error: %v", err)
 	}
 }
