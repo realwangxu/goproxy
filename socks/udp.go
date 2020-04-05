@@ -7,7 +7,7 @@ import (
 func (h *handle) listenUDP() {
 	c, err := net.ListenPacket("udp", h.Addr)
 	if err != nil {
-		h.Errorf("UDP local listen error: %v", err)
+		h.log.Errorf("UDP local listen error: %v", err)
 		return
 	}
 	defer h.removeUDP()
@@ -22,7 +22,7 @@ func (h *handle) listenUDP() {
 			if er, ok := err.(*net.OpError); ok && er.Timeout() {
 				continue // ignore i/o timeout
 			}
-			h.Errorf("UDP local read error: %v", err)
+			h.log.Errorf("UDP local read error: %v", err)
 			return
 		}
 
@@ -38,6 +38,6 @@ func (h *handle) listenUDP() {
 			continue
 		}
 
-		h.CreatePacketConn(raddr, buf[3:n], c) // 第一件事就是发出去，否则会导致数据被覆盖掉
+		h.packet.CreatePacketConn(raddr, buf[3:n], c) // 第一件事就是发出去，否则会导致数据被覆盖掉
 	}
 }

@@ -10,36 +10,46 @@ const (
 // first, net.Conn,  return addrType, addr, raw, err
 type httpAcceptFunc func(byte, net.Conn) (byte, string, []byte, error)
 
-// host, raw, net.Conn
-type createRemoteConnFunc func(string, []byte, net.Conn) (net.Conn, error)
-type createPacketConnFunc func(net.Addr, []byte, net.PacketConn)
-type matchHostsFunc func(string) string
-type matchRuleFunc func(string, byte) (string, string)
-type logFunc func(string, ...interface{})
-
-type handle struct {
-	Addr             string
-	HttpAccept       httpAcceptFunc
-	MatchHosts       matchHostsFunc
-	MatchRule        matchRuleFunc
-	CreateRemoteConn createRemoteConnFunc // tcp
-	CreatePacketConn createPacketConnFunc // udp
-	Errorf           logFunc
-	Infof            logFunc
-	flag             byte
+type Match interface {
+	MatchHosts(string) string
+	MatchRule(string, byte) (string, string)
 }
 
-func New(addr string, accept httpAcceptFunc, matchHosts matchHostsFunc, matchRule matchRuleFunc, c createRemoteConnFunc, u createPacketConnFunc, err, info logFunc) *handle {
+type Logger interface {
+	Info(...interface{})
+	Infof(string, ...interface{})
+	Error(...interface{})
+	Errorf(string, ...interface{})
+}
+
+// host, raw, net.Conn
+type Conn interface {
+	CreateRemoteConn(string, []byte, net.Conn) (net.Conn, error)
+}
+
+type PacketConn interface {
+	CreatePacketConn(net.Addr, []byte, net.PacketConn)
+}
+
+type handle struct {
+	Addr       string
+	HttpAccept httpAcceptFunc
+	match      Match
+	conn       Conn       // tcp
+	packet     PacketConn // udp
+	log        Logger
+	flag       byte
+}
+
+func New(addr string, accept httpAcceptFunc, conn Conn, packet PacketConn, match Match, log Logger) *handle {
 	return &handle{
-		Addr:             addr,
-		HttpAccept:       accept,
-		MatchHosts:       matchHosts,
-		MatchRule:        matchRule,
-		CreateRemoteConn: c,
-		CreatePacketConn: u,
-		Errorf:           err,
-		Infof:            info,
-		flag:             0,
+		Addr:       addr,
+		HttpAccept: accept,
+		match:      match,
+		conn:       conn,
+		packet:     packet,
+		log:        log,
+		flag:       0,
 	}
 }
 
