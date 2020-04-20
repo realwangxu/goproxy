@@ -6,6 +6,7 @@ import (
 	"net"
 	"sync"
 	"time"
+	"errors"
 )
 
 // Packet NAT table
