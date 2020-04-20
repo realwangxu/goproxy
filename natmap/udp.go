@@ -47,11 +47,11 @@ func (m *UdpNatmap) Del(key string) net.PacketConn {
 	return nil
 }
 
-func (m *UdpNatmap) Add(peer net.Addr, dst net.Conn, src net.PacketConn, role mode) {
+func (m *UdpNatmap) Add(peer net.Addr, dst net.Conn, src net.PacketConn, role byte) {
 	m.Set(peer.String(), src)
 
 	go func() {
-		m.timedCopy(dst, peer, src, m.timeout, byte)
+		m.timedCopy(dst, peer, src, m.timeout, role)
 		if pc := m.Del(peer.String()); pc != nil {
 			pc.Close()
 		}
