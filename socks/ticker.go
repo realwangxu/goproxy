@@ -2,17 +2,17 @@ package socks
 
 import "time"
 
-func (h *handle) UpdateTicker() {
+func (this *handle) UpdateTicker() {
 	ticker := time.NewTicker(time.Second * 60) // Minute
 
 	for {
 		select {
 		case <-ticker.C:
-			h.handlerTicker()
+			this.handlerTicker()
 		}
 	}
 }
 
-func (h *handle) handlerTicker() {
-	h.run()
+func (this *handle) handlerTicker() {
+	this.run()
 }

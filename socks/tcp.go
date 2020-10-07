@@ -4,19 +4,19 @@ import (
 	"net"
 )
 
-func (h *handle) listen() {
-	l, err := net.Listen("tcp", h.Addr)
+func (this *handle) listen() {
+	l, err := net.Listen("tcp", this.Addr)
 	if err != nil {
-		h.log.Errorf("listen tcp err: %v", err.Error())
+		this.log.Errorf("listen tcp err: %v", err.Error())
 		return
 	}
 
-	h.addTCP()
-	h.accept(l)
+	this.addTCP()
+	this.accept(l)
 }
 
-func (h *handle) accept(l net.Listener) {
-	defer h.removeTCP()
+func (this *handle) accept(l net.Listener) {
+	defer this.removeTCP()
 	defer l.Close()
 
 	for {
@@ -25,15 +25,15 @@ func (h *handle) accept(l net.Listener) {
 			if netErr, ok := err.(net.Error); ok && netErr.Temporary() {
 				continue
 			}
-			h.log.Errorf("tcp accept %v", err.Error())
+			this.log.Errorf("tcp accept %v", err.Error())
 			return
 		}
 
-		go h.handler(c)
+		go this.handler(c)
 	}
 }
 
-func (h *handle) handler(c net.Conn) {
+func (this *handle) handler(c net.Conn) {
 	defer c.Close()
 	c.(*net.TCPConn).SetKeepAlive(true)
 
@@ -49,7 +49,7 @@ func (h *handle) handler(c net.Conn) {
 
 	buf := make([]byte, 1)
 	if _, err = c.Read(buf); err != nil {
-		h.log.Errorf("get peer first char data failed! %v ", err.Error())
+		this.log.Errorf("get peer first char data failed! %v ", err.Error())
 		return
 	}
 
@@ -74,23 +74,23 @@ func (h *handle) handler(c net.Conn) {
 		addrType, host, port = r.Parse()
 		addr = net.JoinHostPort(host, port)
 	case Version4:
-		h.log.Errorf("socks4 failed!")
+		this.log.Errorf("socks4 failed!")
 		return
 	default:
-		addrType, addr, raw, err = h.HttpAccept(first, c)
+		addrType, addr, raw, err = this.HttpAccept(first, c)
 		if err == nil {
 			host, port, err = net.SplitHostPort(addr)
 		}
 	}
 
 	if err != nil {
-		h.log.Errorf("Connecting ReadAddr failed %v", err.Error())
+		this.log.Errorf("Connecting ReadAddr failed %v", err.Error())
 		return
 	}
 
-	rc, err := h.matchRuleAndCreateConn(addrType, addr, host, raw, c)
+	rc, err := this.matchRuleAndCreateConn(addrType, addr, host, raw, c)
 	if err != nil {
-		h.log.Errorf(err.Error())
+		this.log.Errorf(err.Error())
 		return
 	}
 
@@ -101,29 +101,29 @@ func (h *handle) handler(c net.Conn) {
 		if err, ok := err.(*net.OpError); ok && err.Timeout() {
 			return // ignore i/o timeout
 		}
-		h.log.Errorf("relay error: %v", err)
+		this.log.Errorf("relay error: %v", err)
 	}
 }
 
-func (h *handle) matchRuleAndCreateConn(addrType byte, addr, host string, raw []byte, c net.Conn) (net.Conn, error) {
-	hosts := h.match.MatchHosts(host)
+func (this *handle) matchRuleAndCreateConn(addrType byte, addr, host string, raw []byte, c net.Conn) (net.Conn, error) {
+	hosts := this.match.MatchHosts(host)
 	if hosts != "" {
-		h.log.Infof("[%s] => [%s] => [%s]", hosts, "direct", addr)
+		this.log.Infof("[%s] => [%s] => [%s]", hosts, "direct", addr)
 		return net.Dial("tcp", addr)
 	}
 
-	match, action := h.match.MatchRule(host, addrType)
+	match, action := this.match.MatchRule(host, addrType)
 	switch match {
 	case "final", "default":
 	default:
 		switch action {
 		case "proxy":
 		default:
-			h.log.Infof("[%s] => [%s] => [%s]", match, "direct", addr)
+			this.log.Infof("[%s] => [%s] => [%s]", match, "direct", addr)
 			return net.Dial("tcp", addr)
 		}
 	}
 
-	h.log.Infof("[%s] => [%s] => [%s]", match, "proxy", addr)
-	return h.conn.CreateRemoteConn(addr, raw, c)
+	this.log.Infof("[%s] => [%s] => [%s]", match, "proxy", addr)
+	return this.conn.CreateRemoteConn(addr, raw, c)
 }

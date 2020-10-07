@@ -38,14 +38,14 @@ func New(front, addr, domain string, tlsConfig *tls.Config, worker Worker, log L
 	}
 }
 
-func (p *trojan) ListenAndSrv() {
-	l, err := tls.Listen("tcp", p.addr, p.tlsConfig)
+func (this *trojan) ListenAndSrv() {
+	l, err := tls.Listen("tcp", this.addr, this.tlsConfig)
 	if err != nil {
-		p.log.Errorf("Listen %v failed %v", p.addr, err.Error())
+		this.log.Errorf("Listen %v failed %v", this.addr, err.Error())
 		return
 	}
 
-	p.log.Infof("Starting Listen TCP %v %v ...", p.domain, p.addr)
+	this.log.Infof("Starting Listen TCP %v %v ...", this.domain, this.addr)
 
 	for {
 		c, err := l.Accept()
@@ -53,50 +53,50 @@ func (p *trojan) ListenAndSrv() {
 			if netErr, ok := err.(net.Error); ok && netErr.Temporary() {
 				continue
 			}
-			p.log.Errorf("Accept failed %v", err.Error())
+			this.log.Errorf("Accept failed %v", err.Error())
 			break
 		}
 
-		go p.handler(c)
+		go this.handler(c)
 	}
 }
 
-func (p *trojan) handler(c net.Conn) {
+func (this *trojan) handler(c net.Conn) {
 	defer c.Close()
 
 	b := make([]byte, 1024)
 	n, err := c.Read(b)
 	if err != nil {
-		p.log.Errorf("first read err %v", err.Error())
+		this.log.Errorf("first read err %v", err.Error())
 		return
 	}
 
 	b = b[:n]
 	if n < frameOffsetType {
-		p.log.Errorf("packet short %v", n)
-		p.frontPage(c, b)
+		this.log.Errorf("packet short %v", n)
+		this.frontPage(c, b)
 		return
 	}
 	first := bytes.Index(b[:frameOffsetType], CRLF)
 	if first < 0 || first != frameOffsetPassword {
-		p.log.Errorf("packet err %v", first)
-		p.frontPage(c, b)
+		this.log.Errorf("packet err %v", first)
+		this.frontPage(c, b)
 		return
 	}
 
 	password := b[:frameOffsetPassword]
-	if !p.worker.Auth(password) { // user auth
-		p.log.Errorf("auth failed %v", string(password))
-		p.frontPage(c, b)
+	if !this.worker.Auth(password) { // user auth
+		this.log.Errorf("auth failed %v", string(password))
+		this.frontPage(c, b)
 		return
 	}
 
-	p.worker.Srv(b[:n], c)
+	this.worker.Srv(b[:n], c)
 }
 
 // forward http server
-func (p *trojan) frontPage(c net.Conn, b []byte) {
-	rc, err := net.Dial("tcp", p.front)
+func (this *trojan) frontPage(c net.Conn, b []byte) {
+	rc, err := net.Dial("tcp", this.front)
 	if err != nil {
 		return
 	}
@@ -111,6 +111,6 @@ func (p *trojan) frontPage(c net.Conn, b []byte) {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
 			return // ignore i/o timeout
 		}
-		p.log.Errorf("relay error: %v", err)
+		this.log.Errorf("relay error: %v", err)
 	}
 }

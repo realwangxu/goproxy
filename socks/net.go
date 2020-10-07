@@ -53,23 +53,23 @@ func New(addr string, accept httpAcceptFunc, conn Conn, packet PacketConn, match
 	}
 }
 
-func (h *handle) ListenAndSrv() {
-	h.run()
+func (this *handle) ListenAndSrv() {
+	this.run()
 }
 
-func (h *handle) removeTCP() { h.flag &= flagUDP }
+func (this *handle) removeTCP() { this.flag &= flagUDP }
 
-func (h *handle) removeUDP() { h.flag &= flagTCP }
+func (this *handle) removeUDP() { this.flag &= flagTCP }
 
-func (h *handle) addTCP() { h.flag |= flagTCP }
+func (this *handle) addTCP() { this.flag |= flagTCP }
 
-func (h *handle) addUDP() { h.flag |= flagUDP }
+func (this *handle) addUDP() { this.flag |= flagUDP }
 
-func (h *handle) run() {
-	if h.flag&flagTCP != flagTCP {
-		go h.listen()
+func (this *handle) run() {
+	if this.flag&flagTCP != flagTCP {
+		go this.listen()
 	}
-	if h.flag&flagUDP != flagUDP {
-		go h.listenUDP()
+	if this.flag&flagUDP != flagUDP {
+		go this.listenUDP()
 	}
 }
