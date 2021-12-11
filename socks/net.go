@@ -11,8 +11,12 @@ const (
 type httpAcceptFunc func(byte, net.Conn) (byte, string, []byte, error)
 
 type Match interface {
+	MatchBypass(string) (string, string)
+	MatchGit(string) bool
 	MatchHosts(string) string
+	MatchPort(string) bool
 	MatchRule(string, byte) (string, string)
+	MatchExtension(string) (string, string)
 }
 
 type Logger interface {
