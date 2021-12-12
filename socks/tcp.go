@@ -113,15 +113,13 @@ func (this *handle) matchRuleAndCreateConn(addrType byte, addr, host string, raw
 	}
 
 	match, action := this.match.MatchRule(host, addrType)
+	this.log.Infof("[%s] => [%s] => [%s]", action, match, addr)
 	switch action {
 	case "proxy":
-		this.log.Infof("[%s] => [%s] => [%s]", match, "proxy", addr)
 		return this.conn.CreateRemoteConn(addr, raw, c)
 	case "cn", "direct":
-		this.log.Infof("[%s] => [%s] => [%s]", match, "direct", addr)
 		return net.Dial("tcp", addr)
 	default:
-		this.log.Infof("[%s] => [%s] => [%s]", match, "proxy", addr)
 		return this.conn.CreateRemoteConn(addr, raw, c)
 	}	
 }
