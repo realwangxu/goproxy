@@ -108,18 +108,18 @@ func (this *handle) handler(c net.Conn) {
 func (this *handle) matchRuleAndCreateConn(addrType byte, addr, host string, raw []byte, c net.Conn) (net.Conn, error) {
 	hosts := this.match.MatchHosts(host)
 	if hosts != "" {
-		this.log.Infof("[%s] => [%s] => [%s]", hosts, "direct", addr)
+		this.log.Infof(" DIRECT\t%s", addr)
 		return net.Dial("tcp", addr)
 	}
 
-	match, action := this.match.MatchRule(host, addrType)
-	this.log.Infof("[%s] => [%s] => [%s]", action, match, addr)
+	_, action := this.match.MatchRule(host, addrType)
+	this.log.Infof(" %s\t%s", action, addr)
 	switch action {
-	case "proxy":
+	case "PROXY":
 		return this.conn.CreateRemoteConn(addr, raw, c)
-	case "cn", "direct":
+	case "CN", "DIRECT":
 		return net.Dial("tcp", addr)
 	default:
 		return this.conn.CreateRemoteConn(addr, raw, c)
-	}	
+	}
 }
