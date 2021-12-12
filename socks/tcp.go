@@ -118,7 +118,7 @@ func (this *handle) matchRuleAndCreateConn(addrType byte, addr, host string, raw
 		this.log.Infof("[%s] => [%s] => [%s]", match, "proxy", addr)
 		return this.conn.CreateRemoteConn(addr, raw, c)
 	case "cn", "direct":
-		this.log.Infof("[%s] => [%s] => [%s]", action, "direct", addr)
+		this.log.Infof("[%s] => [%s] => [%s]", match, "direct", addr)
 		return net.Dial("tcp", addr)
 	default:
 		this.log.Infof("[%s] => [%s] => [%s]", match, "proxy", addr)
