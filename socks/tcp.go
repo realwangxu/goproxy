@@ -2,6 +2,14 @@ package socks
 
 import (
 	"net"
+	"regexp"
+)
+
+var (
+	ip4ExpCompile        = regexp.MustCompile(`^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$`)
+	domainExpCompile     = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]{0,62}(\.[a-zA-Z0-9][a-zA-Z0-9_-]{0,62})*(\.[a-zA-Z][a-zA-Z0-9]{0,10}){1}$`)
+	ip4ExpMustCompile    = regexp.MustCompile(`((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)`)
+	domainExpMustCompile = regexp.MustCompile(`[a-zA-Z0-9][a-zA-Z0-9_-]{0,62}(\.[a-zA-Z0-9][a-zA-Z0-9_-]{0,62})*(\.[a-zA-Z][a-zA-Z0-9]{0,10}){1}`)
 )
 
 func (this *handle) listen() {
@@ -88,6 +96,12 @@ func (this *handle) handler(c net.Conn) {
 		return
 	}
 
+	switch addrType {
+	case AtypDomainName:
+		if ip4ExpCompile.MatchString(host) {
+			addrType = AtypIPv4
+		}
+	}
 	rc, err := this.matchRuleAndCreateConn(addrType, addr, host, raw, c)
 	if err != nil {
 		this.log.Errorf(err.Error())
