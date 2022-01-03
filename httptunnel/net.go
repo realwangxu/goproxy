@@ -17,7 +17,7 @@ const (
 // local socks server  connect
 func OnceAccept(first byte, conn net.Conn) (addrType byte, addr string, raw []byte, err error) {
 	var (
-		HTTP_200 = []byte("HTTP/1.1 200 Connection Established\r\n\r\n")
+		HTTP_200 = []byte("HTTP/1.0 200 Connection Established\r\n\r\n")
 		host     string
 		port     string
 	)
