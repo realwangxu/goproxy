@@ -54,14 +54,6 @@ func (r *Address) Network() string {
 	return r.NetworkType
 }
 
-func (r *Address) Domain() string {
-	return r.domain
-}
-
-func (r *Address) IP() string {
-	return r.ip.String()
-}
-
 func (r *Address) Port() string {
 	return fmt.Sprintf("%d", r.port)
 }
@@ -77,6 +69,10 @@ func (r *Address) Host() string {
 	default:
 		return "INVALID_ADDRESS_TYPE"
 	}
+}
+
+func (r *Address) Type() byte {
+	return r.AddressType
 }
 
 func (r *Address) Bytes() []byte {
@@ -95,20 +91,16 @@ func (r *Metadata) String() string {
 	return r.Address.String()
 }
 
-func (r *Metadata) Domain() string {
-	return r.Address.Domain()
-}
-
-func (r *Metadata) IP() string {
-	return r.Address.IP()
-}
-
 func (r *Metadata) Port() string {
 	return r.Address.Port()
 }
 
 func (r *Metadata) Host() string {
 	return r.Address.Host()
+}
+
+func (r *Metadata) Type() byte {
+	return r.Address.AddressType
 }
 
 func (r *Metadata) Bytes() []byte {
