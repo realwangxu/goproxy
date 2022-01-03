@@ -23,15 +23,6 @@ const (
 	DomainLen int = 1 + 1 + 2
 )
 
-type Addr interface {
-	Network() string
-	Domain() string
-	IP() string
-	Port() string
-	Host() string
-	Bytes() []byte
-}
-
 type Address struct {
 	domain      string
 	ip          net.IP
@@ -102,6 +93,26 @@ func (r *Metadata) Network() string {
 
 func (r *Metadata) String() string {
 	return r.Address.String()
+}
+
+func (r *Metadata) Domain() string {
+	return r.Address.Domain()
+}
+
+func (r *Metadata) IP() string {
+	return r.Address.IP()
+}
+
+func (r *Metadata) Port() string {
+	return r.Address.Port()
+}
+
+func (r *Metadata) Host() string {
+	return r.Address.Host()
+}
+
+func (r *Metadata) Bytes() []byte {
+	return r.Address.Bytes()
 }
 
 func (r *Address) ReadFrom(reader io.Reader) (err error) {

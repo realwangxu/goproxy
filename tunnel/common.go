@@ -6,6 +6,16 @@ import (
 	"net"
 )
 
+type Addr interface {
+	Network() string
+	Domain() string
+	IP() string
+	Port() string
+	Host() string
+	Bytes() []byte
+	String() string
+}
+
 type Conn interface {
 	net.Conn
 	Metadata() *Metadata
