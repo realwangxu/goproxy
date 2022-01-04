@@ -126,9 +126,9 @@ func (r *Server) matchRuleAndCreateConn(m Metadata, raw []byte, c net.Conn) (net
 	rule := r.match.MatchRule(m)
 	r.log.Infof(" %s\t%s", rule.String(), rule.Adapter())
 	switch rule.Adapter() {
-	case "proxy":
+	case "PROXY":
 		return r.conn.CreateRemoteConn(m.String(), raw, c)
-	case "direct":
+	case "DIRECT":
 		return net.Dial("tcp", m.String())
 	default:
 		return r.conn.CreateRemoteConn(m.String(), raw, c)
