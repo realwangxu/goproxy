@@ -19,3 +19,10 @@ type Match interface {
 	MatchPort(string) bool
 	MatchRule(Metadata) Rule
 }
+
+type Logger interface {
+	Info(...interface{})
+	Infof(string, ...interface{})
+	Error(...interface{})
+	Errorf(string, ...interface{})
+}
