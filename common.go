@@ -1,5 +1,9 @@
 package goproxy
 
+import (
+	"net"
+)
+
 const (
 	AddrTypeIPv4       byte = 0x01
 	AddrTypeDomainName byte = 0x03
@@ -37,3 +41,10 @@ type Logger interface {
 	Error(...interface{})
 	Errorf(string, ...interface{})
 }
+
+type Conn interface {
+	// host, raw, net.Conn
+	CreateRemoteConn(string, []byte, net.Conn) (net.Conn, error)
+	CreatePacketConn(net.Addr, []byte, net.PacketConn)
+}
+

@@ -38,6 +38,6 @@ func (r *Server) listenUDP() {
 			continue
 		}
 
-		r.packet.CreatePacketConn(raddr, buf[3:n], c) // 第一件事就是发出去，否则会导致数据被覆盖掉
+		r.conn.CreatePacketConn(raddr, buf[3:n], c) // 第一件事就是发出去，否则会导致数据被覆盖掉
 	}
 }
