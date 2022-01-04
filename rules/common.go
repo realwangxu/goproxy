@@ -44,7 +44,6 @@ type Filter struct {
 	rulePort           *redblacktree.Tree
 	ruleDomains        *redblacktree.Tree
 	ruleSuffixDomains  *redblacktree.Tree
-	ruleGit            []string
 	ruleKeywordDomains []*Rule
 	ruleUserAgent      []*Rule
 	ruleIPCIDR         []*RuleIPCIDR
