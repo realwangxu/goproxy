@@ -3,14 +3,8 @@ package socks
 import "time"
 
 func (r *Server) UpdateTicker() {
-	ticker := time.NewTicker(time.Second * 60) // Minute
-
-	for {
-		select {
-		case <-ticker.C:
-			r.handlerTicker()
-		}
-	}
+	r.handlerTicker()
+	time.AfterFunc(time.Second * 60, func() { r.UpdateTicker() }) // Minute
 }
 
 func (r *Server) handlerTicker() {
