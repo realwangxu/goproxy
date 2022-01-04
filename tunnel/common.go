@@ -7,7 +7,7 @@ import (
 )
 
 type Addr interface {
-	Type() byte
+	AddrType() byte
 	Network() string
 	Port() string
 	Host() string

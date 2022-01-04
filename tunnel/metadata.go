@@ -71,7 +71,7 @@ func (r *Address) Host() string {
 	}
 }
 
-func (r *Address) Type() byte {
+func (r *Address) AddrType() byte {
 	return r.AddressType
 }
 
@@ -99,7 +99,7 @@ func (r *Metadata) Host() string {
 	return r.Address.Host()
 }
 
-func (r *Metadata) Type() byte {
+func (r *Metadata) AddrType() byte {
 	return r.Address.AddressType
 }
 
