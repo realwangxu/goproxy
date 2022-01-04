@@ -1,4 +1,4 @@
-package common
+package goproxy
 
 type Metadata interface {
 	AddrType() byte

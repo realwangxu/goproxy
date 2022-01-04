@@ -4,7 +4,7 @@ import (
 	"net"
 	"regexp"
 	"strings"
-	"github.com/koomox/goproxy/common"
+	"github.com/koomox/goproxy"
 )
 
 func (c *Filter) MatchBypass(addr string) bool {
@@ -54,7 +54,7 @@ func (c *Filter) MatchPort(port string) bool {
 	return false
 }
 
-func (c *Filter) MatchRule(m common.Metadata) common.Rule {
+func (c *Filter) MatchRule(m goproxy.Metadata) goproxy.Rule {
 	host := m.Host()
 	switch m.AddrType() {
 	case AddrTypeDomainName:

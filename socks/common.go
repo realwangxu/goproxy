@@ -2,7 +2,7 @@ package socks
 
 import (
 	"net"
-	"github.com/koomox/goproxy/common"
+	"github.com/koomox/goproxy"
 )
 
 // SOCKS request commands as defined in RFC 1928 section 4.
@@ -56,14 +56,14 @@ type PacketConn interface {
 
 type Server struct {
 	Addr   string
-	match  common.Match
+	match  goproxy.Match
 	conn   Conn       // tcp
 	packet PacketConn // udp
 	log    Logger
 	flag   byte
 }
 
-func New(addr string, conn Conn, packet PacketConn, match common.Match, log Logger) *Server {
+func New(addr string, conn Conn, packet PacketConn, match goproxy.Match, log Logger) *Server {
 	return &Server{
 		Addr:   addr,
 		match:  match,
