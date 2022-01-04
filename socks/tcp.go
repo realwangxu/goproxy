@@ -127,9 +127,9 @@ func (r *Server) matchRuleAndCreateConn(m goproxy.Metadata, raw []byte, c net.Co
 	rule := r.match.MatchRule(m)
 	r.log.Infof(" %s\t%s\t%s", rule.String(), rule.Adapter(), m.String())
 	switch rule.Adapter() {
-	case "PROXY":
+	case goproxy.ActionProxy:
 		return r.conn.CreateRemoteConn(m.String(), raw, c)
-	case "DIRECT":
+	case goproxy.ActionDirect:
 		return net.Dial("tcp", m.String())
 	default:
 		return r.conn.CreateRemoteConn(m.String(), raw, c)

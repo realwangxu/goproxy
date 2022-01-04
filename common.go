@@ -1,5 +1,16 @@
 package goproxy
 
+const (
+	AddrTypeIPv4       byte = 0x01
+	AddrTypeDomainName byte = 0x03
+	AddrTypeIPv6       byte = 0x04
+
+	ActionAccept = "ACCEPT"
+	ActionProxy  = "PROXY"
+	ActionReject = "REJECT"
+	ActionDirect = "DIRECT"
+)
+
 type Metadata interface {
 	AddrType() byte
 	Port() string
