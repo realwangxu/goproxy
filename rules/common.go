@@ -1,0 +1,154 @@
+package rules
+
+import (
+	"github.com/koomox/redblacktree"
+	"github.com/oschwald/geoip2-golang"
+	"net"
+	"strings"
+	"sync"
+)
+
+const (
+	AddrTypeIPv4       byte = 0x01
+	AddrTypeDomainName byte = 0x03
+	AddrTypeIPv6       byte = 0x04
+
+	ActionAccept = "ACCEPT"
+	ActionProxy  = "PROXY"
+	ActionReject = "REJECT"
+	ActionDirect = "DIRECT"
+
+	RuleTypeBypass         byte = 0x01
+	RuleTypeHosts          byte = 0x02
+	RuleTypeDomains        byte = 0x03
+	RuleTypeSuffixDomains  byte = 0x04
+	RuleTypeKeywordDomains byte = 0x05
+	RuleTypeUserAgent      byte = 0x06
+	RuleTypeIPCIDR         byte = 0x07
+	RuleTypeGeoIP          byte = 0x08
+	RuleTypePort           byte = 0x09
+	RuleTypeFinal          byte = 0x0A
+	RuleTypeMATCH          byte = 0x0B
+)
+
+type Filter struct {
+	sync.RWMutex
+	useGeoIP bool
+	useHosts bool
+
+	geoDB *geoip2.Reader // GeoIP
+
+	bypassDomains      []interface{}
+	systemBypass       []string
+	ruleHosts          []*RuleHost // local hosts
+	rulePort           *redblacktree.Tree
+	ruleDomains        *redblacktree.Tree
+	ruleSuffixDomains  *redblacktree.Tree
+	ruleGit            []string
+	ruleKeywordDomains []*IRule
+	ruleUserAgent      []*IRule
+	ruleIPCIDR         []*RuleIPCIDR
+	ruleGeoIP          []*IRule
+	ruleFinal          *IRule
+}
+
+type IRule struct {
+	ruleType byte
+	word     string
+	adapter  string
+}
+
+type RuleIPCIDR struct {
+	cidr    *net.IPNet
+	adapter string
+}
+
+type RuleHost struct {
+	Addr string
+	Host string
+}
+
+func (r *IRule) RuleType() byte {
+	return r.ruleType
+}
+
+func (r *IRule) Adapter() string {
+	return r.adapter
+}
+
+func (r *IRule) String() string {
+	return RuleType(r.ruleType)
+}
+
+func New(rules []byte) (element *Filter) {
+	element = &Filter{
+		useGeoIP:          false,
+		useHosts:          false,
+		rulePort:          redblacktree.NewWithStringComparator(),
+		ruleDomains:       redblacktree.NewWithStringComparator(),
+		ruleSuffixDomains: redblacktree.NewWithStringComparator(),
+	}
+	element.FromRules(rules)
+
+	return
+}
+
+func (c *Filter) FromGeoIP(name string) (err error) {
+	db, err := FromGeoIP(name)
+	if err != nil {
+		return
+	}
+	c.useGeoIP = true
+	c.geoDB = db
+
+	return
+}
+
+func (c *Filter) FromHosts() {
+	hosts := FromHosts()
+	if hosts != nil {
+		c.useHosts = true
+		c.ruleHosts = hosts
+	}
+
+	return
+}
+
+func (c *Filter) FromPort(elements ...string) {
+	for _, v := range elements {
+		c.rulePort.Put(strings.ToLower(v), &IRule{ruleType: RuleTypePort, word: strings.ToLower(v), adapter: ActionAccept})
+	}
+}
+
+func (c *Filter) FromFinal(adapter string) {
+	c.ruleFinal = &IRule{ruleType: RuleTypeMATCH, word: "match", adapter: strings.ToUpper(adapter)}
+}
+
+func RuleType(rt byte) string {
+	switch rt {
+	case RuleTypeBypass:
+		return "bypass"
+	case RuleTypeHosts:
+		return "hosts"
+	case RuleTypeDomains:
+		return "domain"
+	case RuleTypeSuffixDomains:
+		return "domain-suffix"
+	case RuleTypeKeywordDomains:
+		return "domain-keyword"
+	case RuleTypeUserAgent:
+		return "user-agent"
+	case RuleTypeIPCIDR:
+		return "ip-cidr"
+	case RuleTypeGeoIP:
+		return "geoip"
+	case RuleTypePort:
+		return "port"
+	case RuleTypeFinal:
+		return "final"
+	case RuleTypeMATCH:
+		return "match"
+	default:
+		return "Unknown"
+	}
+}

@@ -1,6 +1,9 @@
 package socks
 
-import "net"
+import (
+	"net"
+	"github.com/koomox/goproxy/common"
+)
 
 // SOCKS request commands as defined in RFC 1928 section 4.
 const (
@@ -35,26 +38,6 @@ const (
 	TypeIPv6   byte = 0x04
 )
 
-type Metadata interface {
-	AddrType() byte
-	Port() string
-	Host() string
-	String() string
-}
-
-type Rule interface {
-	RuleType() byte
-	Adapter() string
-	String() string
-}
-
-type Match interface {
-	MatchBypass(string) bool
-	MatchHosts(string) string
-	MatchPort(string) bool
-	MatchRule(m Metadata) Rule
-}
-
 type Logger interface {
 	Info(...interface{})
 	Infof(string, ...interface{})
@@ -73,14 +56,14 @@ type PacketConn interface {
 
 type Server struct {
 	Addr   string
-	match  Match
+	match  common.Match
 	conn   Conn       // tcp
 	packet PacketConn // udp
 	log    Logger
 	flag   byte
 }
 
-func New(addr string, conn Conn, packet PacketConn, match Match, log Logger) *Server {
+func New(addr string, conn Conn, packet PacketConn, match common.Match, log Logger) *Server {
 	return &Server{
 		Addr:   addr,
 		match:  match,
