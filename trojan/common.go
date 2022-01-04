@@ -4,14 +4,8 @@ import (
 	"bytes"
 	"crypto/tls"
 	"net"
+	"github.com/koomox/goproxy"
 )
-
-type Logger interface {
-	Info(...interface{})
-	Infof(string, ...interface{})
-	Error(...interface{})
-	Errorf(string, ...interface{})
-}
 
 type Worker interface {
 	Auth([]byte) bool
@@ -24,10 +18,10 @@ type trojan struct {
 	domain    string
 	tlsConfig *tls.Config
 	worker    Worker
-	log       Logger
+	log       goproxy.Logger
 }
 
-func New(front, addr, domain string, tlsConfig *tls.Config, worker Worker, log Logger) *trojan {
+func New(front, addr, domain string, tlsConfig *tls.Config, worker Worker, log goproxy.Logger) *trojan {
 	return &trojan{
 		front:     front,
 		addr:      addr,

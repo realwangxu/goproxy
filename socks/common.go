@@ -38,13 +38,6 @@ const (
 	TypeIPv6   byte = 0x04
 )
 
-type Logger interface {
-	Info(...interface{})
-	Infof(string, ...interface{})
-	Error(...interface{})
-	Errorf(string, ...interface{})
-}
-
 // host, raw, net.Conn
 type Conn interface {
 	CreateRemoteConn(string, []byte, net.Conn) (net.Conn, error)
@@ -59,11 +52,11 @@ type Server struct {
 	match  goproxy.Match
 	conn   Conn       // tcp
 	packet PacketConn // udp
-	log    Logger
+	log    goproxy.Logger
 	flag   byte
 }
 
-func New(addr string, conn Conn, packet PacketConn, match goproxy.Match, log Logger) *Server {
+func New(addr string, conn Conn, packet PacketConn, match goproxy.Match, log goproxy.Logger) *Server {
 	return &Server{
 		Addr:   addr,
 		match:  match,
