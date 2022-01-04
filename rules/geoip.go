@@ -72,11 +72,11 @@ func resolveRequestIPAddr(host string) []net.IP {
 }
 
 func (c *Filter) AddGeoIP(match, adapter string) {
-	c.ruleGeoIP = append(c.ruleGeoIP, &IRule{ruleType: RuleTypeGeoIP, word: strings.ToUpper(match), adapter: strings.ToUpper(adapter)})
+	c.ruleGeoIP = append(c.ruleGeoIP, &Rule{ruleType: RuleTypeGeoIP, word: strings.ToUpper(match), adapter: strings.ToUpper(adapter)})
 }
 
 func (c *Filter) SetGeoIP(match, adapter string) {
-	rule := &IRule{ruleType: RuleTypeGeoIP, word: strings.ToUpper(match), adapter: strings.ToUpper(adapter)}
+	rule := &Rule{ruleType: RuleTypeGeoIP, word: strings.ToUpper(match), adapter: strings.ToUpper(adapter)}
 	if c.ruleGeoIP != nil {
 		for i := 0; i < len(c.ruleGeoIP); i++ {
 			if c.ruleGeoIP[i].word == match {

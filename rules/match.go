@@ -69,5 +69,5 @@ func (c *Filter) MatchRule(m goproxy.Metadata) goproxy.Rule {
 	if c.ruleFinal != nil {
 		return c.ruleFinal
 	}
-	return &IRule{ruleType: 0, word: "match", adapter: ActionDirect}
+	return &Rule{ruleType: 0, word: "match", adapter: ActionDirect}
 }

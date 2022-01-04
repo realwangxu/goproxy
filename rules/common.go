@@ -45,14 +45,14 @@ type Filter struct {
 	ruleDomains        *redblacktree.Tree
 	ruleSuffixDomains  *redblacktree.Tree
 	ruleGit            []string
-	ruleKeywordDomains []*IRule
-	ruleUserAgent      []*IRule
+	ruleKeywordDomains []*Rule
+	ruleUserAgent      []*Rule
 	ruleIPCIDR         []*RuleIPCIDR
-	ruleGeoIP          []*IRule
-	ruleFinal          *IRule
+	ruleGeoIP          []*Rule
+	ruleFinal          *Rule
 }
 
-type IRule struct {
+type Rule struct {
 	ruleType byte
 	word     string
 	adapter  string
@@ -68,15 +68,15 @@ type RuleHost struct {
 	Host string
 }
 
-func (r *IRule) RuleType() byte {
+func (r *Rule) RuleType() byte {
 	return r.ruleType
 }
 
-func (r *IRule) Adapter() string {
+func (r *Rule) Adapter() string {
 	return r.adapter
 }
 
-func (r *IRule) String() string {
+func (r *Rule) String() string {
 	return RuleType(r.ruleType)
 }
 
@@ -116,12 +116,12 @@ func (c *Filter) FromHosts() {
 
 func (c *Filter) FromPort(elements ...string) {
 	for _, v := range elements {
-		c.rulePort.Put(strings.ToLower(v), &IRule{ruleType: RuleTypePort, word: strings.ToLower(v), adapter: ActionAccept})
+		c.rulePort.Put(strings.ToLower(v), &Rule{ruleType: RuleTypePort, word: strings.ToLower(v), adapter: ActionAccept})
 	}
 }
 
 func (c *Filter) FromFinal(adapter string) {
-	c.ruleFinal = &IRule{ruleType: RuleTypeMATCH, word: "match", adapter: strings.ToUpper(adapter)}
+	c.ruleFinal = &Rule{ruleType: RuleTypeMATCH, word: "match", adapter: strings.ToUpper(adapter)}
 }
 
 func RuleType(rt byte) string {
