@@ -109,23 +109,23 @@ func (r *Server) handler(c net.Conn) {
 func (r *Server) matchRuleAndCreateConn(m common.Metadata, raw []byte, c net.Conn) (net.Conn, error) {
 	host := m.Host()
 	if r.match.MatchBypass(host) {
-		r.log.Infof(" DIRECT\t%s", m.String())
+		r.log.Infof(" bypass\tDIRECT\t%v", m.String())
 		return net.Dial("tcp", m.String())
 	}
 
 	hosts := r.match.MatchHosts(host)
 	if hosts != "" {
-		r.log.Infof(" DIRECT\t%s", m.String())
+		r.log.Infof(" hosts\tDIRECT\t%v", m.String())
 		return net.Dial("tcp", m.String())
 	}
 
 	if !r.match.MatchPort(m.Port()) {
-		r.log.Infof(" DIRECT\t%s", m.String())
+		r.log.Infof(" port\tDIRECT\t%v", m.String())
 		return net.Dial("tcp", m.String())
 	}
 
 	rule := r.match.MatchRule(m)
-	r.log.Infof(" %s\t%s", rule.String(), rule.Adapter())
+	r.log.Infof(" %s\t%s\t%s", rule.String(), rule.Adapter(), m.String())
 	switch rule.Adapter() {
 	case "PROXY":
 		return r.conn.CreateRemoteConn(m.String(), raw, c)
