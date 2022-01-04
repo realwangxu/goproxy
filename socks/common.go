@@ -52,7 +52,7 @@ type Match interface {
 	MatchBypass(string) bool
 	MatchHosts(string) string
 	MatchPort(string) bool
-	MatchRule(Metadata) Rule
+	MatchRule(m Metadata) Rule
 }
 
 type Logger interface {
