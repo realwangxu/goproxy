@@ -108,30 +108,31 @@ func (r *Server) handler(c net.Conn) {
 
 func (r *Server) matchRuleAndCreateConn(m goproxy.Metadata, raw []byte, c net.Conn) (net.Conn, error) {
 	host := m.Host()
+	addr := m.String()
 	if r.match.MatchBypass(host) {
-		r.log.Infof(" bypass\tDIRECT\t%v", m.String())
-		return net.Dial("tcp", m.String())
+		r.log.Infof(" bypass\tDIRECT\t%v", addr)
+		return net.Dial("tcp", addr)
 	}
 
 	hosts := r.match.MatchHosts(host)
 	if hosts != "" {
-		r.log.Infof(" hosts\tDIRECT\t%v", m.String())
-		return net.Dial("tcp", m.String())
+		r.log.Infof(" hosts\tDIRECT\t%v", addr)
+		return net.Dial("tcp", addr)
 	}
 
 	if !r.match.MatchPort(m.Port()) {
-		r.log.Infof(" port\tDIRECT\t%v", m.String())
-		return net.Dial("tcp", m.String())
+		r.log.Infof(" port\tDIRECT\t%v", addr)
+		return net.Dial("tcp", addr)
 	}
 
 	rule := r.match.MatchRule(m)
-	r.log.Infof(" %s\t%s\t%s", rule.String(), rule.Adapter(), m.String())
+	r.log.Infof(" %s\t%s\t%s", rule.String(), rule.Adapter(), addr)
 	switch rule.Adapter() {
 	case goproxy.ActionProxy:
-		return r.conn.CreateRemoteConn(m.String(), raw, c)
+		return r.conn.CreateRemoteConn(addr, raw, c)
 	case goproxy.ActionDirect:
-		return net.Dial("tcp", m.String())
+		return net.Dial("tcp", addr)
 	default:
-		return r.conn.CreateRemoteConn(m.String(), raw, c)
+		return r.conn.CreateRemoteConn(addr, raw, c)
 	}
 }
