@@ -1,7 +1,6 @@
 package socks
 
 import (
-	"net"
 	"github.com/koomox/goproxy"
 )
 

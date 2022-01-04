@@ -2,9 +2,9 @@ package socks
 
 import "time"
 
-func (r *Server) UpdateTicker(d time.Duration) {
+func (r *Server) UpdateTicker() {
 	r.handlerTicker()
-	time.AfterFunc(d, func() { r.UpdateTicker(d) })
+	time.AfterFunc(60 * time.Second, func() { r.UpdateTicker() })
 }
 
 func (r *Server) handlerTicker() {
