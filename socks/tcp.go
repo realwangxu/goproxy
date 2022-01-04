@@ -3,6 +3,7 @@ package socks
 import (
 	"net"
 	"regexp"
+	"github.com/koomox/goproxy/common"
 )
 
 var (
@@ -105,7 +106,7 @@ func (r *Server) handler(c net.Conn) {
 	}
 }
 
-func (r *Server) matchRuleAndCreateConn(m Metadata, raw []byte, c net.Conn) (net.Conn, error) {
+func (r *Server) matchRuleAndCreateConn(m common.Metadata, raw []byte, c net.Conn) (net.Conn, error) {
 	host := m.Host()
 	if r.match.MatchBypass(host) {
 		r.log.Infof(" DIRECT\t%s", m.String())
