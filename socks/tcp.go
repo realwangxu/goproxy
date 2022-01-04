@@ -12,19 +12,19 @@ var (
 	domainExpMustCompile = regexp.MustCompile(`[a-zA-Z0-9][a-zA-Z0-9_-]{0,62}(\.[a-zA-Z0-9][a-zA-Z0-9_-]{0,62})*(\.[a-zA-Z][a-zA-Z0-9]{0,10}){1}`)
 )
 
-func (this *handle) listen() {
-	l, err := net.Listen("tcp", this.Addr)
+func (r *Server) listen() {
+	l, err := net.Listen("tcp", r.Addr)
 	if err != nil {
-		this.log.Errorf("listen tcp err: %v", err.Error())
+		r.log.Errorf("listen tcp err: %v", err.Error())
 		return
 	}
 
-	this.addTCP()
-	this.accept(l)
+	r.addTCP()
+	r.accept(l)
 }
 
-func (this *handle) accept(l net.Listener) {
-	defer this.removeTCP()
+func (r *Server) accept(l net.Listener) {
+	defer r.removeTCP()
 	defer l.Close()
 
 	for {
@@ -33,44 +33,39 @@ func (this *handle) accept(l net.Listener) {
 			if netErr, ok := err.(net.Error); ok && netErr.Temporary() {
 				continue
 			}
-			this.log.Errorf("tcp accept %v", err.Error())
+			r.log.Errorf("tcp accept %v", err.Error())
 			return
 		}
 
-		go this.handler(c)
+		go r.handler(c)
 	}
 }
 
-func (this *handle) handler(c net.Conn) {
+func (r *Server) handler(c net.Conn) {
 	defer c.Close()
 	c.(*net.TCPConn).SetKeepAlive(true)
 
 	var (
-		addrType byte
-		addr     string
-		host     string
-		port     string
-		r        Addr
-		raw      []byte
-		err      error
+		addr *Address
+		err  error
+		raw  []byte
 	)
 
 	buf := make([]byte, 1)
 	if _, err = c.Read(buf); err != nil {
-		this.log.Errorf("get peer first char data failed! %v ", err.Error())
+		r.log.Errorf("get peer first char data failed! %v ", err.Error())
 		return
 	}
 
 	first := buf[0]
 	switch first {
 	case Version5:
-		r, err = OnceAccept(first, c)
-		if err != nil {
+		if addr, err = OnceAccept(first, c); err != nil {
 			if err == InfoUDPAssociate {
 				buf := make([]byte, 1)
 				// block here
 				for {
-					_, err := c.Read(buf)
+					_, err = c.Read(buf)
 					if err, ok := err.(net.Error); ok && err.Timeout() {
 						continue
 					}
@@ -79,32 +74,23 @@ func (this *handle) handler(c net.Conn) {
 			}
 			return
 		}
-		addrType, host, port = r.Parse()
-		addr = net.JoinHostPort(host, port)
 	case Version4:
-		this.log.Errorf("socks4 failed!")
+		r.log.Errorf("socks4 failed!")
 		return
 	default:
-		addrType, addr, raw, err = this.HttpAccept(first, c)
-		if err == nil {
-			host, port, err = net.SplitHostPort(addr)
+		if addr, raw, err = HttpOnceAccept(first, c); err != nil {
+			return
 		}
 	}
 
 	if err != nil {
-		this.log.Errorf("Connecting ReadAddr failed %v", err.Error())
+		r.log.Errorf("Connecting ReadAddr failed %v", err.Error())
 		return
 	}
 
-	switch addrType {
-	case AtypDomainName:
-		if ip4ExpCompile.MatchString(host) {
-			addrType = AtypIPv4
-		}
-	}
-	rc, err := this.matchRuleAndCreateConn(addrType, addr, host, raw, c)
+	rc, err := r.matchRuleAndCreateConn(addr, raw, c)
 	if err != nil {
-		this.log.Errorf(err.Error())
+		r.log.Errorf(err.Error())
 		return
 	}
 
@@ -115,25 +101,36 @@ func (this *handle) handler(c net.Conn) {
 		if err, ok := err.(*net.OpError); ok && err.Timeout() {
 			return // ignore i/o timeout
 		}
-		this.log.Errorf("relay error: %v", err)
+		r.log.Errorf("relay error: %v", err)
 	}
 }
 
-func (this *handle) matchRuleAndCreateConn(addrType byte, addr, host string, raw []byte, c net.Conn) (net.Conn, error) {
-	hosts := this.match.MatchHosts(host)
-	if hosts != "" {
-		this.log.Infof(" DIRECT\t%s", addr)
-		return net.Dial("tcp", addr)
+func (r *Server) matchRuleAndCreateConn(m Metadata, raw []byte, c net.Conn) (net.Conn, error) {
+	host := m.Host()
+	if r.match.MatchBypass(host) {
+		r.log.Infof(" DIRECT\t%s", m.String())
+		return net.Dial("tcp", m.String())
 	}
 
-	_, action := this.match.MatchRule(host, addrType)
-	this.log.Infof(" %s\t%s", action, addr)
-	switch action {
-	case "PROXY":
-		return this.conn.CreateRemoteConn(addr, raw, c)
-	case "CN", "DIRECT":
-		return net.Dial("tcp", addr)
+	hosts := r.match.MatchHosts(host)
+	if hosts != "" {
+		r.log.Infof(" DIRECT\t%s", m.String())
+		return net.Dial("tcp", m.String())
+	}
+
+	if !r.match.MatchPort(m.Port()) {
+		r.log.Infof(" DIRECT\t%s", m.String())
+		return net.Dial("tcp", m.String())
+	}
+
+	rule := r.match.MatchRule(m)
+	r.log.Infof(" %s\t%s", rule.String(), rule.Adapter())
+	switch rule.Adapter() {
+	case "proxy":
+		return r.conn.CreateRemoteConn(m.String(), raw, c)
+	case "direct":
+		return net.Dial("tcp", m.String())
 	default:
-		return this.conn.CreateRemoteConn(addr, raw, c)
+		return r.conn.CreateRemoteConn(m.String(), raw, c)
 	}
 }

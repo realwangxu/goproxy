@@ -5,10 +5,10 @@ import (
 	"strconv"
 )
 
-type Addr []byte
+type Addresses []byte
 
 // SplitAddr slices a SOCKS address from beginning of b. Returns nil if failed.
-func SplitAddr(b []byte) Addr {
+func SplitAddr(b []byte) Addresses {
 	addrLen := 1
 	if len(b) < addrLen {
 		return nil
@@ -37,7 +37,7 @@ func SplitAddr(b []byte) Addr {
 }
 
 // ParseAddr parses the address in string s. Returns nil if failed.
-func ParseAddr(s string) Addr {
+func ParseAddr(s string) Addresses {
 	host, p, err := net.SplitHostPort(s)
 	if err != nil {
 		return nil
@@ -48,7 +48,7 @@ func ParseAddr(s string) Addr {
 	}
 
 	var (
-		addr    Addr
+		addr    Addresses
 		addrLen int
 		hostLen int
 	)
@@ -84,7 +84,7 @@ func ParseAddr(s string) Addr {
 	return addr
 }
 
-func (addr Addr) Parse() (addrType byte, host, port string) {
+func (addr Addresses) Parse() (addrType byte, host, port string) {
 	var prefixLen int
 	addrType = addr[0]
 	switch addrType {

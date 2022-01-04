@@ -5,16 +5,19 @@ import (
 	"net"
 )
 
-func OnceAccept(first byte, rw io.ReadWriter) (addr Addr, err error) {
+func OnceAccept(first byte, rw io.ReadWriter) (*Address, error) {
 	return OnceHandshake(first, rw)
 }
 
-func Accept(rw io.ReadWriter) (addr Addr, err error) {
+func Accept(rw io.ReadWriter) (*Address, error) {
 	return Handshake(rw)
 }
 
 // src of proxy address, dst of dest address, return proxy net.Conn interface
 func Dial(dst, src string) (conn net.Conn, err error) {
+	var (
+		rAddr *Address
+	)
 	conn, err = net.Dial("tcp", src)
 	if err != nil {
 		return
@@ -42,8 +45,11 @@ func Dial(dst, src string) (conn net.Conn, err error) {
 		return
 	}
 
-	raddr := ParseAddr(dst)
-	if _, err = conn.Write(append([]byte{Version5, 1, 0}, raddr...)); err != nil {
+	if rAddr, err = FromAddr(dst); err != nil {
+		return
+	}
+	b := rAddr.Bytes()
+	if _, err = conn.Write(append([]byte{Version5, 1, 0}, b...)); err != nil {
 		return
 	}
 	n, err = conn.Read(buf)
