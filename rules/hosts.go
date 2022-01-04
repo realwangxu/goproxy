@@ -17,13 +17,11 @@ var (
 
 func hostsDir() string {
 	switch strings.ToLower(runtime.GOOS) {
-	case "darwin", "linux":
-		return "/etc/hosts"
 	case "windows":
 		home := strings.Replace(os.Getenv("windir"), "\\", "/", -1)
 		return path.Join(home, "/System32/drivers/etc/hosts")
 	default:
-		return ""
+		return "/etc/hosts"
 	}
 }
 
@@ -75,10 +73,10 @@ func readHostsLine(str string) (addr, host string, err error) {
 		err = errHostsTooShort
 		return
 	}
-	addr = ip4ExpCompile.FindString(item[0])
-	host = domainExpCompile.FindString(item[1])
+	addr = ip4ExpMustCompile.FindString(item[0])
+	host = domainExpMustCompile.FindString(item[1])
 	if host == "" {
-		host = ip4ExpCompile.FindString(item[1])
+		host = ip4ExpMustCompile.FindString(item[1])
 	}
 	if addr == "" || host == "" {
 		err = errHostsIsNull
