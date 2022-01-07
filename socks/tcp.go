@@ -106,7 +106,7 @@ func (r *Server) handler(c net.Conn) {
 	}
 }
 
-func (r *Server) matchRuleAndCreateConn(m Metadata, raw []byte, c net.Conn) (conn net.Conn, err error) {
+func (r *Server) matchRuleAndCreateConn(m goproxy.Metadata, raw []byte, c net.Conn) (conn net.Conn, err error) {
 	host := m.Host()
 	addr := m.String()
 	if r.match.MatchBypass(host) {
