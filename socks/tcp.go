@@ -106,7 +106,7 @@ func (r *Server) handler(c net.Conn) {
 	}
 }
 
-func (r *Server) matchRuleAndCreateConn(m goproxy.Metadata, raw []byte, c net.Conn) (net.Conn, error) {
+func (r *Server) matchRuleAndCreateConn(m goproxy.Metadata, raw []byte, c net.Conn) (conn net.Conn, err error) {
 	host := m.Host()
 	addr := m.String()
 	if r.match.MatchBypass(host) {
@@ -131,7 +131,13 @@ func (r *Server) matchRuleAndCreateConn(m goproxy.Metadata, raw []byte, c net.Co
 	case goproxy.ActionProxy:
 		return r.conn.CreateRemoteConn(addr, raw, c)
 	case goproxy.ActionDirect:
-		return net.Dial("tcp", addr)
+		if conn, err = net.Dial("tcp", addr); err != nil {
+			return
+		}
+		if raw != nil  && len(raw) > 0 {
+			_, err = conn.Write(raw)
+		}
+		return
 	default:
 		return r.conn.CreateRemoteConn(addr, raw, c)
 	}
