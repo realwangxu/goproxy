@@ -151,3 +151,7 @@ func RuleType(rt byte) string {
 		return "Unknown"
 	}
 }
+
+func (c *Filter)SystemBypass() []string {
+	return c.systemBypass
+}
