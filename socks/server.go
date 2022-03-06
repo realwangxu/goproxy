@@ -221,11 +221,14 @@ func (s *Server) packetDispatchLoop() {
 				if er, ok := err.(*net.OpError); ok && er.Timeout() {
 					continue // ignore i/o timeout
 				}
-				s.log.Errorf("socks read udp packet error %v", err)
+				s.log.Errorf("socks read udp packet error %v", err.Error())
 				return
 			}
 		}
-		s.log.Debug("socks recv udp packet from %v", src)
+		s.log.Debug("socks recv udp packet from", src)
+		if n < 7 {
+			return
+		}
 		s.RLock()
 		conn, found := s.mapping[src.String()]
 		s.RUnlock()
@@ -251,7 +254,7 @@ func (s *Server) packetDispatchLoop() {
 						}
 						buf.Write(info.payload)
 						if _, err := s.udpListener.WriteTo(buf.Bytes(), conn.src); err != nil {
-							s.log.Errorf("socks failed to respond packet to %v", src)
+							s.log.Error("socks failed to respond packet to", src)
 							return
 						}
 						s.log.Debug("socks respond udp packet to", src, "addr", info.metadata)
