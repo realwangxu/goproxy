@@ -1,75 +1,59 @@
 package socks
 
 import (
-	"io"
+	"context"
+	"errors"
 	"net"
 )
 
-func OnceAccept(first byte, rw io.ReadWriter) (*Address, error) {
-	return OnceHandshake(first, rw)
+type Conn struct {
+	net.Conn
+	metadata *Metadata
+	payload  []byte
 }
 
-func Accept(rw io.ReadWriter) (*Address, error) {
-	return Handshake(rw)
+func (c *Conn) Metadata() *Metadata {
+	return c.metadata
 }
 
-// src of proxy address, dst of dest address, return proxy net.Conn interface
-func Dial(dst, src string) (conn net.Conn, err error) {
-	var (
-		rAddr *Address
-	)
-	conn, err = net.Dial("tcp", src)
-	if err != nil {
-		return
-	}
-	if _, err = conn.Write([]byte{Version5, 1, 0}); err != nil {
-		return
-	}
-	buf := make([]byte, MaxAddrLen)
-	n, err := conn.Read(buf)
-	if err != nil {
-		return
-	}
-	if n < 2 {
-		err = ErrGeneralFailure
-		return
-	}
-	ver := buf[0]
-	method := buf[1]
-	if ver != Version5 {
-		err = ErrSocksVersion
-		return
-	}
-	if method != 0 {
-		err = ErrGeneralFailure
-		return
-	}
+func (c *Conn) Payload() []byte {
+	return c.payload
+}
 
-	if rAddr, err = FromAddr(dst); err != nil {
-		return
-	}
-	b := rAddr.Bytes()
-	if _, err = conn.Write(append([]byte{Version5, 1, 0}, b...)); err != nil {
-		return
-	}
-	n, err = conn.Read(buf)
-	if err != nil {
-		return
-	}
-	if n < 2 {
-		err = ErrGeneralFailure
-		return
-	}
-	ver = buf[0]
-	if ver != Version5 {
-		err = ErrSocksVersion
-		return
-	}
-	rep := buf[1]
-	if rep != 0 {
-		err = ErrGeneralFailure
-		return
-	}
+type packetInfo struct {
+	metadata *Metadata
+	payload  []byte
+}
 
-	return
+type PacketConn struct {
+	net.PacketConn
+	in     chan *packetInfo
+	out    chan *packetInfo
+	src    net.Addr
+	ctx    context.Context
+	cancel context.CancelFunc
+}
+
+func (c *PacketConn) Close() error {
+	c.cancel()
+	return nil
+}
+
+func (c *PacketConn) WriteWithMetadata(payload []byte, m *Metadata) (int, error) {
+	select {
+	case c.out <- &packetInfo{metadata: m, payload: payload}:
+		return len(payload), nil
+	case <-c.ctx.Done():
+		return 0, errors.New("socks packet conn closed")
+	}
+}
+
+func (c *PacketConn) ReadWithMetadata(payload []byte) (int, *Metadata, error) {
+	select {
+	case info := <-c.in:
+		n := copy(payload, info.payload)
+		return n, info.metadata, nil
+	case <-c.ctx.Done():
+		return 0, nil, errors.New("socks packet conn closed")
+	}
 }

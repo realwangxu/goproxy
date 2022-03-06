@@ -9,12 +9,15 @@ import (
 	"net/http/httputil"
 )
 
+var (
+	httpStatusOK = []byte("HTTP/1.0 200 Connection Established\r\n\r\n")
+)
+
 // local socks server  connect
-func HttpOnceAccept(first byte, conn net.Conn) (addr *Address, raw []byte, err error) {
+func HttpOnceAccept(first byte, conn net.Conn) (addr *Address, payload []byte, err error) {
 	var (
-		HTTP_200 = []byte("HTTP/1.0 200 Connection Established\r\n\r\n")
-		host     string
-		port     string
+		host string
+		port string
 	)
 
 	buf := make([]byte, 4096)
@@ -37,16 +40,16 @@ func HttpOnceAccept(first byte, conn net.Conn) (addr *Address, raw []byte, err e
 			port = "443"
 		}
 	}
-	if addr, err = FromAddr(net.JoinHostPort(host, port)); err != nil {
+	if addr, err = NewAddressFromAddr("tcp", net.JoinHostPort(host, port)); err != nil {
 		return
 	}
 	method := req.Method
 	switch method {
 	case http.MethodConnect:
-		_, err = conn.Write(HTTP_200)
+		_, err = conn.Write(httpStatusOK)
 	default:
 		removeHeaders(req)
-		raw, err = httputil.DumpRequest(req, true)
+		payload, err = httputil.DumpRequest(req, true)
 	}
 	return
 }
