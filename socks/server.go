@@ -226,7 +226,7 @@ func (s *Server) packetDispatchLoop() {
 			}
 		}
 		s.log.Debug("socks recv udp packet from", src)
-		if n < 7 {
+		if n < 10 {
 			return
 		}
 		s.RLock()
