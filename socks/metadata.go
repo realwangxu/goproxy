@@ -52,6 +52,18 @@ func (r *Metadata) WriteTo(w io.Writer) (err error) {
 	return
 }
 
+func (r *Metadata) AddrType() byte {
+	return r.AddressType
+}
+
+func (r *Metadata) Port() string {
+	return fmt.Sprintf("%d", r.Address.Port)
+}
+
+func (r *Metadata) Host() string {
+	return r.Address.Host()
+}
+
 func (r *Metadata) Network() string {
 	return r.Address.Network()
 }
@@ -68,6 +80,17 @@ func (a *Address) String() string {
 		return fmt.Sprintf("[%s]:%d", a.IP.String(), a.Port)
 	case DomainName:
 		return fmt.Sprintf("%s:%d", a.DomainName, a.Port)
+	default:
+		return "INVALID_ADDRESS_TYPE"
+	}
+}
+
+func (a *Address) Host() string {
+	switch a.AddressType {
+	case IPv4, IPv6:
+		return a.IP.String()
+	case DomainName:
+		return a.DomainName
 	default:
 		return "INVALID_ADDRESS_TYPE"
 	}
