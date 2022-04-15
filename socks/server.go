@@ -115,7 +115,7 @@ func (s *Server) acceptConnLoop() {
 					s.connChan <- &Conn{Conn: conn, metadata: &Metadata{Address: addr}, payload: nil}
 				case Associate:
 					defer conn.Close()
-					laddr, err := NewAddressFromAddr("udp", conn.LocalAddr().String())
+					laddr, err := ResolveAddr(conn.LocalAddr().String())
 					if err != nil {
 						return
 					}
@@ -235,8 +235,8 @@ func (s *Server) packetDispatchLoop() {
 		if !found {
 			ctx, cancel := context.WithCancel(s.ctx)
 			conn = &PacketConn{
-				in:     make(chan *packetInfo, 128),
-				out:    make(chan *packetInfo, 128),
+				in:     make(chan *packetInfo, 16),
+				out:    make(chan *packetInfo, 16),
 				ctx:    ctx,
 				cancel: cancel,
 				src:    src,
