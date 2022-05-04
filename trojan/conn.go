@@ -1,22 +1,44 @@
 package trojan
 
 import (
-	"crypto/tls"
-	"fmt"
+	"bytes"
 	"net"
 )
 
-func Dial(addr string, tlsCfg *tls.Config, payload []byte) (net.Conn, error) {
-	conn, err := tls.Dial("tcp", addr, tlsCfg)
+type Conn struct {
+	net.Conn
+	hash     string
+	metadata *Metadata
+}
 
-	if err != nil {
-		return nil, fmt.Errorf("tls dial failed %v", err.Error())
+func (c *Conn) Close() error {
+	return c.Conn.Close()
+}
+
+func (c *Conn) Metadata() *Metadata {
+	return c.metadata
+}
+
+func (c *Conn) Hash() string {
+	return c.hash
+}
+
+func (c *Conn) WriteHeader(b []byte) (int, error) {
+	buf := bytes.NewBuffer(make([]byte, 0, MaxPacketSize))
+	buf.WriteString(c.hash)
+	buf.Write(CRLF)
+	c.metadata.WriteTo(buf)
+	buf.Write(CRLF)
+	if b != nil {
+		buf.Write(b)
 	}
+	return c.Conn.Write(buf.Bytes())
+}
 
-	if _, err = conn.Write(payload); err != nil {
-		conn.Close()
-		return nil, fmt.Errorf("tls dial remote write failed %v", err.Error())
-	}
+func (c *Conn) Write(b []byte) (int, error) {
+	return c.Conn.Write(b)
+}
 
-	return conn, nil
+func (c *Conn) Read(b []byte) (int, error) {
+	return c.Conn.Read(b)
 }

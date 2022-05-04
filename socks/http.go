@@ -40,7 +40,7 @@ func HttpOnceAccept(first byte, conn net.Conn) (addr *Address, payload []byte, e
 			port = "443"
 		}
 	}
-	if addr, err = ResolveAddr(net.JoinHostPort(host, port)); err != nil {
+	if addr, err = ResolveAddr("tcp", net.JoinHostPort(host, port)); err != nil {
 		return
 	}
 	method := req.Method

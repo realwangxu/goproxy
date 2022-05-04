@@ -1,4 +1,4 @@
-package socks
+package trojan
 
 import (
 	"bytes"
@@ -10,9 +10,18 @@ import (
 )
 
 const (
+	MaxPacketSize = 8 * 1024
+
 	IPv4       byte = 0x01
 	DomainName byte = 0x03
 	IPv6       byte = 0x04
+
+	Connect   byte = 0x01
+	Associate byte = 0x03
+)
+
+var (
+	CRLF = []byte{0x0D, 0x0A}
 )
 
 type Address struct {
@@ -72,6 +81,17 @@ func (r *Metadata) String() string {
 	return r.Address.String()
 }
 
+func (a *Address) Host() string {
+	switch a.AddressType {
+	case IPv4, IPv6:
+		return a.IP.String()
+	case DomainName:
+		return a.DomainName
+	default:
+		return "INVALID_ADDRESS_TYPE"
+	}
+}
+
 func (a *Address) String() string {
 	switch a.AddressType {
 	case IPv4:
@@ -80,17 +100,6 @@ func (a *Address) String() string {
 		return fmt.Sprintf("[%s]:%d", a.IP.String(), a.Port)
 	case DomainName:
 		return fmt.Sprintf("%s:%d", a.DomainName, a.Port)
-	default:
-		return "INVALID_ADDRESS_TYPE"
-	}
-}
-
-func (a *Address) Host() string {
-	switch a.AddressType {
-	case IPv4, IPv6:
-		return a.IP.String()
-	case DomainName:
-		return a.DomainName
 	default:
 		return "INVALID_ADDRESS_TYPE"
 	}

@@ -115,7 +115,7 @@ func (s *Server) acceptConnLoop() {
 					s.connChan <- &Conn{Conn: conn, metadata: &Metadata{Address: addr}, payload: nil}
 				case Associate:
 					defer conn.Close()
-					laddr, err := ResolveAddr(conn.LocalAddr().String())
+					laddr, err := ResolveAddr("udp", conn.LocalAddr().String())
 					if err != nil {
 						return
 					}
