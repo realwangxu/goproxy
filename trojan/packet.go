@@ -8,24 +8,26 @@ import (
 	"net"
 )
 
+type PacketConn interface {
+	net.PacketConn
+	WriteWithMetadata([]byte, *Metadata) (int, error)
+	ReadWithMetadata([]byte) (int, *Metadata, error)
+}
+
 type packetInfo struct {
 	src     *Metadata
 	payload []byte
 }
 
-type PacketConn struct {
-	*Conn
+type UDPConn struct {
+	Conn
 }
 
-func (c *PacketConn) Close() error {
-	return c.Conn.Close()
-}
-
-func (c *PacketConn) ReadFrom(b []byte) (int, net.Addr, error) {
+func (c *UDPConn) ReadFrom(b []byte) (int, net.Addr, error) {
 	return c.ReadWithMetadata(b)
 }
 
-func (c *PacketConn) WriteTo(b []byte, addr net.Addr) (int, error) {
+func (c *UDPConn) WriteTo(b []byte, addr net.Addr) (int, error) {
 	address, err := ResolveAddr("udp", addr.String())
 	if err != nil {
 		return 0, err
@@ -33,7 +35,7 @@ func (c *PacketConn) WriteTo(b []byte, addr net.Addr) (int, error) {
 	return c.WriteWithMetadata(b, &Metadata{Command: Associate, Address: address})
 }
 
-func (c *PacketConn) WriteWithMetadata(b []byte, m *Metadata) (int, error) {
+func (c *UDPConn) WriteWithMetadata(b []byte, m *Metadata) (int, error) {
 	packet := make([]byte, 0, MaxPacketSize)
 	w := bytes.NewBuffer(packet)
 	m.Address.WriteTo(w)
@@ -47,7 +49,7 @@ func (c *PacketConn) WriteWithMetadata(b []byte, m *Metadata) (int, error) {
 	return len(b), err
 }
 
-func (c *PacketConn) ReadWithMetadata(b []byte) (int, *Metadata, error) {
+func (c *UDPConn) ReadWithMetadata(b []byte) (int, *Metadata, error) {
 	addr := &Address{NetworkType: "udp"}
 	if err := addr.ReadFrom(c.Conn); err != nil {
 		return 0, nil, fmt.Errorf("failed to parse udp packet addr %v", err.Error())

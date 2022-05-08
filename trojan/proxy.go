@@ -34,7 +34,7 @@ func (p *Proxy) relayConnLoop() {
 			p.log.Error("failed to accept connection", err)
 			continue
 		}
-		go func(inbound *Conn) {
+		go func(inbound Conn) {
 			defer inbound.Close()
 			outbound, err := net.Dial("tcp", "")
 			if err != nil {

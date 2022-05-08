@@ -16,18 +16,18 @@ func Dial(network, address, ServerName string, tlsCfg *tls.Config) (conn net.Con
 	return
 }
 
-func DialConn(hash, addr string, conn net.Conn) (*Conn, error) {
+func DialConn(hash, addr string, conn net.Conn) (Conn, error) {
 	address, err := ResolveAddr("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
-	return &Conn{Conn: conn, hash: hash, metadata: &Metadata{Command: Connect, Address: address}}, nil
+	return &OutboundConn{Conn: conn, hash: hash, metadata: &Metadata{Command: Connect, Address: address}}, nil
 }
 
-func DialPacket(hash, addr string, conn net.Conn) (*PacketConn, error) {
+func DialPacket(hash, addr string, conn net.Conn) (PacketConn, error) {
 	address, err := ResolveAddr("udp", addr)
 	if err != nil {
 		return nil, err
 	}
-	return &PacketConn{&Conn{Conn: conn, hash: hash, metadata: &Metadata{Command: Associate, Address: address}}}, nil
+	return &UDPConn{&OutboundConn{Conn: conn, hash: hash, metadata: &Metadata{Command: Associate, Address: address}}}, nil
 }

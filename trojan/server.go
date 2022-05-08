@@ -27,8 +27,8 @@ type Server struct {
 	front       string
 	tcpListener net.Listener
 	worker      Worker
-	connChan    chan *Conn
-	packetChan  chan *PacketConn
+	connChan    chan Conn
+	packetChan  chan PacketConn
 	ctx         context.Context
 	cancel      context.CancelFunc
 	log         Logger
@@ -45,8 +45,8 @@ func NewServer(front, addr string, tlsConfig *tls.Config, worker Worker, ctx con
 		front:       front,
 		tcpListener: tcpListener,
 		worker:      worker,
-		connChan:    make(chan *Conn, 32),
-		packetChan:  make(chan *PacketConn, 32),
+		connChan:    make(chan Conn, 32),
+		packetChan:  make(chan PacketConn, 32),
 		ctx:         ctx,
 		cancel:      cancel,
 		log:         log,
@@ -61,7 +61,7 @@ func (s *Server) Close() error {
 	return s.tcpListener.Close()
 }
 
-func (s *Server) AcceptConn() (*Conn, error) {
+func (s *Server) AcceptConn() (Conn, error) {
 	select {
 	case conn := <-s.connChan:
 		return conn, nil
@@ -70,7 +70,7 @@ func (s *Server) AcceptConn() (*Conn, error) {
 	}
 }
 
-func (s *Server) AcceptPacket() (*PacketConn, error) {
+func (s *Server) AcceptPacket() (PacketConn, error) {
 	select {
 	case conn := <-s.packetChan:
 		return conn, nil
@@ -137,10 +137,10 @@ func (s *Server) acceptLoop() {
 			}
 			switch m.Command {
 			case Connect:
-				s.connChan <- &Conn{Conn: c, hash: password, metadata: m}
+				s.connChan <- &InboundConn{Conn: c, hash: password, metadata: m}
 				s.log.Debug("trojan tcp connection")
 			case Associate:
-				s.packetChan <- &PacketConn{&Conn{Conn: c, hash: password, metadata: m}}
+				s.packetChan <- &UDPConn{&InboundConn{Conn: c, hash: password, metadata: m}}
 				s.log.Debug("trojan udp connection")
 			default:
 				c.Close()
