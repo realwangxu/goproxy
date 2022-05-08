@@ -4,38 +4,33 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/koomox/goproxy/tunnel"
 	"io"
 	"net"
 )
-
-type PacketConn interface {
-	net.PacketConn
-	WriteWithMetadata([]byte, *Metadata) (int, error)
-	ReadWithMetadata([]byte) (int, *Metadata, error)
-}
 
 type packetInfo struct {
 	src     *Metadata
 	payload []byte
 }
 
-type UDPConn struct {
-	Conn
+type PacketConn struct {
+	tunnel.Conn
 }
 
-func (c *UDPConn) ReadFrom(b []byte) (int, net.Addr, error) {
+func (c *PacketConn) ReadFrom(b []byte) (int, net.Addr, error) {
 	return c.ReadWithMetadata(b)
 }
 
-func (c *UDPConn) WriteTo(b []byte, addr net.Addr) (int, error) {
-	address, err := ResolveAddr("udp", addr.String())
+func (c *PacketConn) WriteTo(b []byte, addr net.Addr) (int, error) {
+	address, err := tunnel.ResolveAddr("udp", addr.String())
 	if err != nil {
 		return 0, err
 	}
-	return c.WriteWithMetadata(b, &Metadata{Command: Associate, Address: address})
+	return c.WriteWithMetadata(b, &tunnel.Metadata{Command: Associate, Address: address})
 }
 
-func (c *UDPConn) WriteWithMetadata(b []byte, m *Metadata) (int, error) {
+func (c *PacketConn) WriteWithMetadata(b []byte, m *tunnel.Metadata) (int, error) {
 	packet := make([]byte, 0, MaxPacketSize)
 	w := bytes.NewBuffer(packet)
 	m.Address.WriteTo(w)
@@ -49,8 +44,8 @@ func (c *UDPConn) WriteWithMetadata(b []byte, m *Metadata) (int, error) {
 	return len(b), err
 }
 
-func (c *UDPConn) ReadWithMetadata(b []byte) (int, *Metadata, error) {
-	addr := &Address{NetworkType: "udp"}
+func (c *PacketConn) ReadWithMetadata(b []byte) (int, *tunnel.Metadata, error) {
+	addr := &tunnel.Address{NetworkType: "udp"}
 	if err := addr.ReadFrom(c.Conn); err != nil {
 		return 0, nil, fmt.Errorf("failed to parse udp packet addr %v", err.Error())
 	}
@@ -70,5 +65,5 @@ func (c *UDPConn) ReadWithMetadata(b []byte) (int, *Metadata, error) {
 	if _, err := io.ReadFull(c.Conn, b[:length]); err != nil {
 		return 0, nil, fmt.Errorf("failed to read payload %v", err.Error())
 	}
-	return length, &Metadata{Command: Associate, Address: addr}, nil
+	return length, &tunnel.Metadata{Command: Associate, Address: addr}, nil
 }

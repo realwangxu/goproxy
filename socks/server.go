@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/koomox/goproxy/tunnel"
 	"io"
 	"net"
 	"sync"
@@ -31,8 +32,8 @@ type Server struct {
 	tcpListener net.Listener
 	udpListener net.PacketConn
 	timeout     time.Duration
-	connChan    chan *Conn
-	packetChan  chan *PacketConn
+	connChan    chan tunnel.Conn
+	packetChan  chan tunnel.PacketConn
 	mapping     map[string]*PacketConn
 	log         Logger
 	ctx         context.Context
@@ -61,8 +62,8 @@ func NewServer(addr string, ctx context.Context, log Logger) (*Server, error) {
 		tcpListener: tcpListener,
 		udpListener: udpListener,
 		timeout:     time.Duration(60) * time.Second,
-		connChan:    make(chan *Conn, 32),
-		packetChan:  make(chan *PacketConn, 32),
+		connChan:    make(chan tunnel.Conn, 32),
+		packetChan:  make(chan tunnel.PacketConn, 32),
 		mapping:     make(map[string]*PacketConn),
 		log:         log,
 		ctx:         ctx,
@@ -112,10 +113,10 @@ func (s *Server) acceptConnLoop() {
 						conn.Close()
 						return
 					}
-					s.connChan <- &Conn{Conn: conn, metadata: &Metadata{Address: addr}, payload: nil}
+					s.connChan <- &Conn{Conn: conn, metadata: &tunnel.Metadata{Address: addr}, payload: nil}
 				case Associate:
 					defer conn.Close()
-					laddr, err := ResolveAddr("udp", conn.LocalAddr().String())
+					laddr, err := tunnel.ResolveAddr("udp", conn.LocalAddr().String())
 					if err != nil {
 						return
 					}
@@ -138,7 +139,7 @@ func (s *Server) acceptConnLoop() {
 					conn.Close()
 					return
 				}
-				s.connChan <- &Conn{Conn: conn, metadata: &Metadata{Address: addr}, payload: payload}
+				s.connChan <- &Conn{Conn: conn, metadata: &tunnel.Metadata{Address: addr}, payload: payload}
 			}
 		}(conn)
 	}
@@ -154,7 +155,7 @@ func (s *Server) Dial(payload []byte, addr string) (conn net.Conn, err error) {
 	return
 }
 
-func (s *Server) AcceptConn() (*Conn, error) {
+func (s *Server) AcceptConn() (tunnel.Conn, error) {
 	select {
 	case conn := <-s.connChan:
 		return conn, nil
@@ -163,7 +164,7 @@ func (s *Server) AcceptConn() (*Conn, error) {
 	}
 }
 
-func (s *Server) AcceptPacket() (*PacketConn, error) {
+func (s *Server) AcceptPacket() (tunnel.PacketConn, error) {
 	select {
 	case conn := <-s.packetChan:
 		return conn, nil
@@ -172,7 +173,7 @@ func (s *Server) AcceptPacket() (*PacketConn, error) {
 	}
 }
 
-func (s *Server) handshake(rw io.ReadWriter) (cmd byte, addr *Address, err error) {
+func (s *Server) handshake(rw io.ReadWriter) (cmd byte, addr *tunnel.Address, err error) {
 	b := make([]byte, 256)
 	if _, err = rw.Read(b[:1]); err != nil {
 		return 0, nil, fmt.Errorf("failed to read NMETHODS %v", err.Error())
@@ -187,7 +188,7 @@ func (s *Server) handshake(rw io.ReadWriter) (cmd byte, addr *Address, err error
 	if _, err = rw.Read(b[:3]); err != nil {
 		return 0, nil, fmt.Errorf("failed to read command %v", err.Error())
 	}
-	addr = &Address{}
+	addr = &tunnel.Address{}
 	if err = addr.ReadFrom(rw); err != nil {
 		return 0, nil, err
 	}
@@ -199,7 +200,7 @@ func (s *Server) connect(w io.Writer) (err error) {
 	return err
 }
 
-func (s *Server) associate(w io.Writer, addr *Address) (err error) {
+func (s *Server) associate(w io.Writer, addr *tunnel.Address) (err error) {
 	buf := bytes.NewBuffer([]byte{0x05, 0x00, 0x00})
 	if err = addr.WriteTo(buf); err != nil {
 		return
@@ -235,11 +236,12 @@ func (s *Server) packetDispatchLoop() {
 		if !found {
 			ctx, cancel := context.WithCancel(s.ctx)
 			conn = &PacketConn{
-				in:     make(chan *packetInfo, 16),
-				out:    make(chan *packetInfo, 16),
-				ctx:    ctx,
-				cancel: cancel,
-				src:    src,
+				in:         make(chan *packetInfo, 16),
+				out:        make(chan *packetInfo, 16),
+				ctx:        ctx,
+				cancel:     cancel,
+				PacketConn: s.udpListener,
+				src:        src,
 			}
 			go func(conn *PacketConn) {
 				defer conn.Close()
@@ -279,7 +281,7 @@ func (s *Server) packetDispatchLoop() {
 			s.log.Info("socks new udp session from", src)
 		}
 		r := bytes.NewBuffer(b[3:n])
-		addr := &Address{}
+		addr := &tunnel.Address{}
 		if err := addr.ReadFrom(r); err != nil {
 			s.log.Errorf("socks failed to parse incoming packet %v", err.Error())
 			continue
@@ -287,7 +289,7 @@ func (s *Server) packetDispatchLoop() {
 		payload := make([]byte, MaxPacketSize)
 		length, _ := r.Read(payload)
 		select {
-		case conn.in <- &packetInfo{metadata: &Metadata{Address: addr}, payload: payload[:length]}:
+		case conn.in <- &packetInfo{metadata: &tunnel.Metadata{Address: addr}, payload: payload[:length]}:
 		default:
 			s.log.Info("socks udp queue full")
 		}

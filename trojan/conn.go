@@ -3,19 +3,15 @@ package trojan
 import (
 	"bytes"
 	"fmt"
+	"github.com/koomox/goproxy/tunnel"
 	"net"
 	"sync"
 )
 
-type Conn interface {
-	net.Conn
-	Metadata() *Metadata
-}
-
 type OutboundConn struct {
 	net.Conn
 	hash              string
-	metadata          *Metadata
+	metadata          *tunnel.Metadata
 	headerWrittenOnce sync.Once
 }
 
@@ -23,7 +19,7 @@ func (c *OutboundConn) Close() error {
 	return c.Conn.Close()
 }
 
-func (c *OutboundConn) Metadata() *Metadata {
+func (c *OutboundConn) Metadata() *tunnel.Metadata {
 	return c.metadata
 }
 
@@ -69,14 +65,14 @@ func (c *OutboundConn) Read(b []byte) (int, error) {
 type InboundConn struct {
 	net.Conn
 	hash     string
-	metadata *Metadata
+	metadata *tunnel.Metadata
 }
 
 func (c *InboundConn) Close() error {
 	return c.Conn.Close()
 }
 
-func (c *InboundConn) Metadata() *Metadata {
+func (c *InboundConn) Metadata() *tunnel.Metadata {
 	return c.metadata
 }
 

@@ -2,6 +2,7 @@ package trojan
 
 import (
 	"crypto/tls"
+	"github.com/koomox/goproxy/tunnel"
 	"net"
 )
 
@@ -16,18 +17,18 @@ func Dial(network, address, ServerName string, tlsCfg *tls.Config) (conn net.Con
 	return
 }
 
-func DialConn(hash, addr string, conn net.Conn) (Conn, error) {
-	address, err := ResolveAddr("tcp", addr)
+func DialConn(hash, addr string, conn net.Conn) (tunnel.Conn, error) {
+	address, err := tunnel.ResolveAddr("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
-	return &OutboundConn{Conn: conn, hash: hash, metadata: &Metadata{Command: Connect, Address: address}}, nil
+	return &OutboundConn{Conn: conn, hash: hash, metadata: &tunnel.Metadata{Command: Connect, Address: address}}, nil
 }
 
-func DialPacket(hash, addr string, conn net.Conn) (PacketConn, error) {
-	address, err := ResolveAddr("udp", addr)
+func DialPacket(hash, addr string, conn net.Conn) (tunnel.PacketConn, error) {
+	address, err := tunnel.ResolveAddr("udp", addr)
 	if err != nil {
 		return nil, err
 	}
-	return &UDPConn{&OutboundConn{Conn: conn, hash: hash, metadata: &Metadata{Command: Associate, Address: address}}}, nil
+	return &PacketConn{&OutboundConn{Conn: conn, hash: hash, metadata: &tunnel.Metadata{Command: Associate, Address: address}}}, nil
 }

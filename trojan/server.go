@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/koomox/goproxy/tunnel"
 	"io"
 	"net"
 	"sync"
@@ -27,8 +28,8 @@ type Server struct {
 	front       string
 	tcpListener net.Listener
 	worker      Worker
-	connChan    chan Conn
-	packetChan  chan PacketConn
+	connChan    chan tunnel.Conn
+	packetChan  chan tunnel.PacketConn
 	ctx         context.Context
 	cancel      context.CancelFunc
 	log         Logger
@@ -45,8 +46,8 @@ func NewServer(front, addr string, tlsConfig *tls.Config, worker Worker, ctx con
 		front:       front,
 		tcpListener: tcpListener,
 		worker:      worker,
-		connChan:    make(chan Conn, 32),
-		packetChan:  make(chan PacketConn, 32),
+		connChan:    make(chan tunnel.Conn, 32),
+		packetChan:  make(chan tunnel.PacketConn, 32),
 		ctx:         ctx,
 		cancel:      cancel,
 		log:         log,
@@ -61,7 +62,7 @@ func (s *Server) Close() error {
 	return s.tcpListener.Close()
 }
 
-func (s *Server) AcceptConn() (Conn, error) {
+func (s *Server) AcceptConn() (tunnel.Conn, error) {
 	select {
 	case conn := <-s.connChan:
 		return conn, nil
@@ -70,7 +71,7 @@ func (s *Server) AcceptConn() (Conn, error) {
 	}
 }
 
-func (s *Server) AcceptPacket() (PacketConn, error) {
+func (s *Server) AcceptPacket() (tunnel.PacketConn, error) {
 	select {
 	case conn := <-s.packetChan:
 		return conn, nil
@@ -123,7 +124,7 @@ func (s *Server) acceptLoop() {
 				return
 			}
 
-			m := &Metadata{}
+			m := &tunnel.Metadata{}
 			if err = m.ReadFrom(c); err != nil {
 				c.Close()
 				s.log.Errorf("trojan read address error %v", err.Error())
@@ -140,7 +141,7 @@ func (s *Server) acceptLoop() {
 				s.connChan <- &InboundConn{Conn: c, hash: password, metadata: m}
 				s.log.Debug("trojan tcp connection")
 			case Associate:
-				s.packetChan <- &UDPConn{&InboundConn{Conn: c, hash: password, metadata: m}}
+				s.packetChan <- &PacketConn{&InboundConn{Conn: c, hash: password, metadata: m}}
 				s.log.Debug("trojan udp connection")
 			default:
 				c.Close()

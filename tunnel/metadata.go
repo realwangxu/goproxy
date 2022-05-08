@@ -10,26 +10,17 @@ import (
 )
 
 const (
-	TypeIPv4   byte = 0x01
-	TypeDomain byte = 0x03
-	TypeIPv6   byte = 0x04
-
-	CmdConnect      byte = 0x01
-	CmdBind         byte = 0x02
-	CmdUDPAssociate byte = 0x03
-
-	IPv4len   int = 1 + net.IPv4len + 2
-	IPv6len   int = 1 + net.IPv6len + 2
-	DomainLen int = 1 + 1 + 2
+	IPv4       byte = 0x01
+	DomainName byte = 0x03
+	IPv6       byte = 0x04
 )
 
 type Address struct {
-	domain      string
-	ip          net.IP
-	host        string
-	port        int
+	DomainName  string
+	Port        int
 	NetworkType string
 	AddressType byte
+	net.IP
 }
 
 type Metadata struct {
@@ -37,50 +28,40 @@ type Metadata struct {
 	*Address
 }
 
-func (r *Address) String() string {
-	switch r.AddressType {
-	case TypeIPv4:
-		return fmt.Sprintf("%s:%d", r.ip.String(), r.port)
-	case TypeIPv6:
-		return fmt.Sprintf("[%s]:%d", r.ip.String(), r.port)
-	case TypeDomain:
-		return fmt.Sprintf("%s:%d", r.domain, r.port)
-	default:
-		return "INVALID_ADDRESS_TYPE"
+func (r *Metadata) ReadFrom(reader io.Reader) (err error) {
+	b := [1]byte{}
+	if _, err = io.ReadFull(reader, b[:]); err != nil {
+		return err
 	}
-}
-
-func (r *Address) Network() string {
-	return r.NetworkType
-}
-
-func (r *Address) Port() string {
-	return fmt.Sprintf("%d", r.port)
-}
-
-func (r *Address) Host() string {
-	switch r.AddressType {
-	case TypeIPv4:
-		return r.ip.String()
-	case TypeIPv6:
-		return r.ip.String()
-	case TypeDomain:
-		return r.domain
-	default:
-		return "INVALID_ADDRESS_TYPE"
+	r.Command = b[0]
+	r.Address = &Address{}
+	if err = r.Address.ReadFrom(reader); err != nil {
+		return fmt.Errorf("failed to read address %v", err.Error())
 	}
+	return
 }
 
-func (r *Address) AddrType() byte {
+func (r *Metadata) WriteTo(w io.Writer) (err error) {
+	buf := bytes.NewBuffer(make([]byte, 0, 64))
+	buf.WriteByte(r.Command)
+	if err = r.Address.WriteTo(buf); err != nil {
+		return
+	}
+	r.Address.NetworkType = "tcp"
+	_, err = w.Write(buf.Bytes())
+	return
+}
+
+func (r *Metadata) AddrType() byte {
 	return r.AddressType
 }
 
-func (r *Address) Bytes() []byte {
-	b := bytes.NewBuffer([]byte{})
-	if err := r.WriteTo(b); err != nil {
-		return nil
-	}
-	return b.Bytes()
+func (r *Metadata) Port() string {
+	return fmt.Sprintf("%d", r.Address.Port)
+}
+
+func (r *Metadata) Host() string {
+	return r.Address.Host()
 }
 
 func (r *Metadata) Network() string {
@@ -91,164 +72,184 @@ func (r *Metadata) String() string {
 	return r.Address.String()
 }
 
-func (r *Metadata) Port() string {
-	return r.Address.Port()
+func (a *Address) Host() string {
+	switch a.AddressType {
+	case IPv4, IPv6:
+		return a.IP.String()
+	case DomainName:
+		return a.DomainName
+	default:
+		return "INVALID_ADDRESS_TYPE"
+	}
 }
 
-func (r *Metadata) Host() string {
-	return r.Address.Host()
+func (a *Address) String() string {
+	switch a.AddressType {
+	case IPv4:
+		return fmt.Sprintf("%s:%d", a.IP.String(), a.Port)
+	case IPv6:
+		return fmt.Sprintf("[%s]:%d", a.IP.String(), a.Port)
+	case DomainName:
+		return fmt.Sprintf("%s:%d", a.DomainName, a.Port)
+	default:
+		return "INVALID_ADDRESS_TYPE"
+	}
 }
 
-func (r *Metadata) AddrType() byte {
-	return r.Address.AddressType
-}
-
-func (r *Metadata) Bytes() []byte {
-	return r.Address.Bytes()
+func (r *Address) Network() string {
+	return r.NetworkType
 }
 
 func (r *Address) ReadFrom(reader io.Reader) (err error) {
-	b := make([]byte, 259)
+	b := make([]byte, 512)
 	offset := 1
 	if _, err = io.ReadFull(reader, b[:1]); err != nil {
 		return fmt.Errorf("unable to read ATYP %v", err.Error())
 	}
 	r.AddressType = b[0]
 	switch r.AddressType {
-	case TypeIPv4:
+	case IPv4:
 		offset += net.IPv4len
 		if _, err = io.ReadFull(reader, b[1:offset+2]); err != nil {
 			return fmt.Errorf("failed to read IPv4 %v", err.Error())
 		}
-		r.ip = b[1:offset]
-		r.port = int(binary.BigEndian.Uint16(b[offset : offset+2]))
-	case TypeIPv6:
+		r.IP = b[1:offset]
+		r.Port = int(binary.BigEndian.Uint16(b[offset : offset+2]))
+	case IPv6:
 		offset += net.IPv6len
 		if _, err = io.ReadFull(reader, b[1:offset+2]); err != nil {
 			return fmt.Errorf("failed to read IPv6 %v", err.Error())
 		}
-		r.ip = b[1:offset]
-		r.port = int(binary.BigEndian.Uint16(b[offset : offset+2]))
-	case TypeDomain:
+		r.IP = b[1:offset]
+		r.Port = int(binary.BigEndian.Uint16(b[offset : offset+2]))
+	case DomainName:
 		offset += 1
 		if _, err = io.ReadFull(reader, b[1:offset]); err != nil {
 			return fmt.Errorf("failed to read domain name length")
 		}
 		offset += int(b[1])
 		if _, err = io.ReadFull(reader, b[2:offset+2]); err != nil {
-			return fmt.Errorf("failed to read domain name")
+			return fmt.Errorf("failed to read domain name %v", err.Error())
 		}
-		r.domain = string(b[2:offset])
-		r.port = int(binary.BigEndian.Uint16(b[offset : offset+2]))
-		if ip := net.ParseIP(r.domain); ip != nil {
-			r.ip = ip
+		r.DomainName = string(b[2:offset])
+		r.Port = int(binary.BigEndian.Uint16(b[offset : offset+2]))
+		if ip := net.ParseIP(r.DomainName); ip != nil {
+			r.IP = ip
 			if ip.To4() != nil {
-				r.AddressType = TypeIPv4
+				r.AddressType = IPv4
 			} else {
-				r.AddressType = TypeIPv6
+				r.AddressType = IPv6
 			}
 		}
 	default:
 		return fmt.Errorf("invalid ATYP %v", r.AddressType)
 	}
-
-	return nil
-}
-
-func (r *Metadata) ReadFrom(reader io.Reader) error {
-	b := [1]byte{}
-	if _, err := io.ReadFull(reader, b[:]); err != nil {
-		return err
-	}
-	r.Command = b[0]
-	r.Address = &Address{}
-	if err := r.Address.ReadFrom(reader); err != nil {
-		return fmt.Errorf("failed to marshal address %v", err.Error())
-	}
-
-	return nil
+	return
 }
 
 func (r *Address) WriteTo(w io.Writer) (err error) {
 	if _, err = w.Write([]byte{r.AddressType}); err != nil {
 		return
 	}
-
 	switch r.AddressType {
-	case TypeDomain:
-		if _, err = w.Write([]byte{byte(len(r.domain))}); err != nil {
+	case DomainName:
+		if _, err = w.Write([]byte{byte(len(r.DomainName))}); err != nil {
 			return
 		}
-		if _, err = w.Write([]byte(r.domain)); err != nil {
+		if _, err = w.Write([]byte(r.DomainName)); err != nil {
 			return
 		}
-	case TypeIPv4:
-		if _, err = w.Write(r.ip.To4()); err != nil {
+	case IPv4:
+		if _, err = w.Write(r.IP.To4()); err != nil {
 			return
 		}
-	case TypeIPv6:
-		if _, err = w.Write(r.ip.To16()); err != nil {
+	case IPv6:
+		if _, err = w.Write(r.IP.To16()); err != nil {
 			return
 		}
 	default:
 		return fmt.Errorf("invalid ATYP %v", r.AddressType)
 	}
-
 	port := [2]byte{}
-	binary.BigEndian.PutUint16(port[:], uint16(r.port))
-
+	binary.BigEndian.PutUint16(port[:], uint16(r.Port))
 	_, err = w.Write(port[:])
 	return
 }
 
-func (r *Metadata) WriteTo(w io.Writer) (err error) {
-	b := bytes.NewBuffer([]byte{})
-	b.WriteByte(r.Command)
-	if err = r.Address.WriteTo(b); err != nil {
-		return
-	}
-
-	r.Address.NetworkType = "tcp"
-	_, err = w.Write(b.Bytes())
-
-	return
+func (r *Address) Bytes() []byte {
+	buf := bytes.NewBuffer(make([]byte, 0, 64))
+	r.WriteTo(buf)
+	return buf.Bytes()
 }
 
-func FromHostPort(network, host string, port int) *Address {
+func ResolveAddr(network, address string) (*Address, error) {
+	host, p, err := net.SplitHostPort(address)
+	if err != nil {
+		return nil, fmt.Errorf("resolve addr failed")
+	}
+	port, err := strconv.ParseInt(p, 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("resolve addr failed to port %v", p)
+	}
+	r := &Address{NetworkType: network, Port: int(port)}
 	ip := net.ParseIP(host)
 	if ip != nil {
-		if ip.To4() != nil {
-			return &Address{
-				ip:          ip,
-				port:        port,
-				AddressType: TypeIPv4,
-				NetworkType: network,
-			}
+		ip4 := ip.To4()
+		if ip4 != nil {
+			r.AddressType = IPv4
+			r.IP = ip4
+		} else {
+			r.AddressType = IPv6
+			r.IP = ip
 		}
-		return &Address{
-			ip:          ip,
-			port:        port,
-			AddressType: TypeIPv6,
-			NetworkType: network,
+	} else {
+		hostLen := len(host)
+		if hostLen > 255 {
+			return nil, fmt.Errorf("resolve addr failed to host length size %v", hostLen)
 		}
+		r.AddressType = DomainName
+		r.DomainName = host
 	}
 
-	return &Address{
-		domain:      host,
-		port:        port,
-		AddressType: TypeDomain,
-		NetworkType: network,
-	}
+	return r, nil
 }
 
-func FromAddr(network, addr string) (*Address, error) {
-	host, p, err := net.SplitHostPort(addr)
-	if err != nil {
-		return nil, err
+func SplitAddr(b []byte) (*Address, error) {
+	offset := 1 + net.IPv4len + 2
+	if len(b) < offset {
+		return nil, fmt.Errorf("split addr is short")
 	}
-	port, err := strconv.ParseInt(p, 10, 16)
-	if err != nil {
-		return nil, err
+	r := &Address{AddressType: b[0]}
+	switch r.AddressType {
+	case DomainName:
+		offset = 1 + 1 + int(b[1])
+		if len(b) < offset+2 {
+			return nil, fmt.Errorf("split addr is short")
+		}
+		r.DomainName = string(b[2:offset])
+		r.Port = int(binary.BigEndian.Uint16(b[offset : offset+2]))
+		if ip := net.ParseIP(r.DomainName); ip != nil {
+			r.IP = ip
+			if ip.To4() != nil {
+				r.AddressType = IPv4
+			} else {
+				r.AddressType = IPv6
+			}
+		}
+	case IPv4:
+		offset = 1 + net.IPv4len
+		r.IP = b[1:offset]
+		r.Port = int(binary.BigEndian.Uint16(b[offset : offset+2]))
+	case IPv6:
+		offset = 1 + net.IPv6len
+		if len(b) < offset+2 {
+			return nil, fmt.Errorf("split addr is short")
+		}
+		r.IP = b[1:offset]
+		r.Port = int(binary.BigEndian.Uint16(b[offset : offset+2]))
+	default:
+		return nil, fmt.Errorf("split addr is unknow")
 	}
-	return FromHostPort(network, host, int(port)), nil
+
+	return r, nil
 }

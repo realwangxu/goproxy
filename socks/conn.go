@@ -3,16 +3,17 @@ package socks
 import (
 	"context"
 	"errors"
+	"github.com/koomox/goproxy/tunnel"
 	"net"
 )
 
 type Conn struct {
 	net.Conn
-	metadata *Metadata
+	metadata *tunnel.Metadata
 	payload  []byte
 }
 
-func (c *Conn) Metadata() *Metadata {
+func (c *Conn) Metadata() *tunnel.Metadata {
 	return c.metadata
 }
 
@@ -21,7 +22,7 @@ func (c *Conn) Payload() []byte {
 }
 
 type packetInfo struct {
-	metadata *Metadata
+	metadata *tunnel.Metadata
 	payload  []byte
 }
 
@@ -39,7 +40,7 @@ func (c *PacketConn) Close() error {
 	return nil
 }
 
-func (c *PacketConn) WriteWithMetadata(payload []byte, m *Metadata) (int, error) {
+func (c *PacketConn) WriteWithMetadata(payload []byte, m *tunnel.Metadata) (int, error) {
 	select {
 	case c.out <- &packetInfo{metadata: m, payload: payload}:
 		return len(payload), nil
@@ -48,7 +49,7 @@ func (c *PacketConn) WriteWithMetadata(payload []byte, m *Metadata) (int, error)
 	}
 }
 
-func (c *PacketConn) ReadWithMetadata(payload []byte) (int, *Metadata, error) {
+func (c *PacketConn) ReadWithMetadata(payload []byte) (int, *tunnel.Metadata, error) {
 	select {
 	case info := <-c.in:
 		n := copy(payload, info.payload)

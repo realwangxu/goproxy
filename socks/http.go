@@ -3,6 +3,7 @@ package socks
 import (
 	"bufio"
 	"bytes"
+	"github.com/koomox/goproxy/tunnel"
 	"io"
 	"net"
 	"net/http"
@@ -14,7 +15,7 @@ var (
 )
 
 // local socks server  connect
-func HttpOnceAccept(first byte, conn net.Conn) (addr *Address, payload []byte, err error) {
+func HttpOnceAccept(first byte, conn net.Conn) (addr *tunnel.Address, payload []byte, err error) {
 	var (
 		host string
 		port string
@@ -40,7 +41,7 @@ func HttpOnceAccept(first byte, conn net.Conn) (addr *Address, payload []byte, e
 			port = "443"
 		}
 	}
-	if addr, err = ResolveAddr("tcp", net.JoinHostPort(host, port)); err != nil {
+	if addr, err = tunnel.ResolveAddr("tcp", net.JoinHostPort(host, port)); err != nil {
 		return
 	}
 	method := req.Method
