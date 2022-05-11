@@ -17,18 +17,18 @@ func Dial(network, address, ServerName string, tlsCfg *tls.Config) (conn net.Con
 	return
 }
 
-func DialConn(hash, addr string, conn net.Conn) (tunnel.Conn, error) {
+func DialConn(payload []byte, hash, addr string, conn net.Conn) (tunnel.Conn, error) {
 	address, err := tunnel.ResolveAddr("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
-	return &OutboundConn{Conn: conn, hash: hash, metadata: &tunnel.Metadata{Command: Connect, Address: address}}, nil
+	return &OutboundConn{Conn: conn, hash: hash, metadata: &tunnel.Metadata{Command: Connect, Address: address}, payload: payload}, nil
 }
 
-func DialPacket(hash, addr string, conn net.Conn) (tunnel.PacketConn, error) {
+func DialPacket(payload []byte, hash, addr string, conn net.Conn) (tunnel.PacketConn, error) {
 	address, err := tunnel.ResolveAddr("udp", addr)
 	if err != nil {
 		return nil, err
 	}
-	return &PacketConn{&OutboundConn{Conn: conn, hash: hash, metadata: &tunnel.Metadata{Command: Associate, Address: address}}}, nil
+	return &PacketConn{&OutboundConn{Conn: conn, hash: hash, metadata: &tunnel.Metadata{Command: Associate, Address: address}, payload: payload}}, nil
 }

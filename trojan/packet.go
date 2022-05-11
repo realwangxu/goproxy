@@ -10,7 +10,7 @@ import (
 )
 
 type packetInfo struct {
-	src     *Metadata
+	src     *tunnel.Metadata
 	payload []byte
 }
 

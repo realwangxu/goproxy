@@ -113,7 +113,7 @@ func (s *Server) acceptConnLoop() {
 						conn.Close()
 						return
 					}
-					s.connChan <- &Conn{Conn: conn, metadata: &tunnel.Metadata{Address: addr}, payload: nil}
+					s.connChan <- &Conn{Conn: conn, metadata: &tunnel.Metadata{Command: Connect, Address: addr}, payload: nil}
 				case Associate:
 					defer conn.Close()
 					laddr, err := tunnel.ResolveAddr("udp", conn.LocalAddr().String())
@@ -139,7 +139,7 @@ func (s *Server) acceptConnLoop() {
 					conn.Close()
 					return
 				}
-				s.connChan <- &Conn{Conn: conn, metadata: &tunnel.Metadata{Address: addr}, payload: payload}
+				s.connChan <- &Conn{Conn: conn, metadata: &tunnel.Metadata{Command: Connect, Address: addr}, payload: payload}
 			}
 		}(conn)
 	}

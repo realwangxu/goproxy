@@ -12,6 +12,7 @@ type OutboundConn struct {
 	net.Conn
 	hash              string
 	metadata          *tunnel.Metadata
+	payload           []byte
 	headerWrittenOnce sync.Once
 }
 
@@ -36,6 +37,10 @@ func (c *OutboundConn) WriteHeader(payload []byte) (bool, error) {
 		buf.Write(CRLF)
 		c.metadata.WriteTo(buf)
 		buf.Write(CRLF)
+		if c.payload != nil {
+			buf.Write(payload)
+			c.payload = nil
+		}
 		if payload != nil {
 			buf.Write(payload)
 		}

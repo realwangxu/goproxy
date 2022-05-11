@@ -11,6 +11,17 @@ import (
 	"sync"
 )
 
+var (
+	CRLF = []byte{0x0D, 0x0A}
+)
+
+const (
+	Connect   byte = 0x01
+	Associate byte = 0x03
+
+	MaxPacketSize = 8 * 1024
+)
+
 type Logger interface {
 	Info(...interface{})
 	Infof(string, ...interface{})
