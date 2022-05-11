@@ -17,7 +17,7 @@ func Dial(network, address, ServerName string, tlsCfg *tls.Config) (conn net.Con
 	return
 }
 
-func DialConn(hash, addr string, conn net.Conn) (tunnel.Conn, error) {
+func DialConn(hash []byte, addr string, conn net.Conn) (tunnel.Conn, error) {
 	address, err := tunnel.ResolveAddr("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -25,6 +25,6 @@ func DialConn(hash, addr string, conn net.Conn) (tunnel.Conn, error) {
 	return &OutboundConn{Conn: conn, hash: hash, metadata: &tunnel.Metadata{Command: Connect, Address: address}}, nil
 }
 
-func DialPacket(hash string, conn net.Conn) (tunnel.PacketConn, error) {
+func DialPacket(hash []byte, conn net.Conn) (tunnel.PacketConn, error) {
 	return &PacketConn{&OutboundConn{Conn: conn, hash: hash, metadata: &tunnel.Metadata{Command: Associate, Address: &tunnel.Address{}}}}, nil
 }
