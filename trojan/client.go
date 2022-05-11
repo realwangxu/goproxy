@@ -25,10 +25,6 @@ func DialConn(hash, addr string, conn net.Conn) (tunnel.Conn, error) {
 	return &OutboundConn{Conn: conn, hash: hash, metadata: &tunnel.Metadata{Command: Connect, Address: address}}, nil
 }
 
-func DialPacket(hash, addr string, conn net.Conn) (tunnel.PacketConn, error) {
-	address, err := tunnel.ResolveAddr("udp", addr)
-	if err != nil {
-		return nil, err
-	}
-	return &PacketConn{&OutboundConn{Conn: conn, hash: hash, metadata: &tunnel.Metadata{Command: Associate, Address: address}}}, nil
+func DialPacket(hash string, conn net.Conn) (tunnel.PacketConn, error) {
+	return &PacketConn{&OutboundConn{Conn: conn, hash: hash, metadata: &tunnel.Metadata{Command: Associate, Address: &tunnel.Address{}}}}, nil
 }
