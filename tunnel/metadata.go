@@ -100,6 +100,21 @@ func (r *Address) Network() string {
 	return r.NetworkType
 }
 
+func (a *Address) ResolveIP() (net.IP, error) {
+	if a.AddressType == IPv4 || a.AddressType == IPv6 {
+		return a.IP, nil
+	}
+	if a.IP != nil {
+		return a.IP, nil
+	}
+	addr, err := net.ResolveIPAddr("ip", a.DomainName)
+	if err != nil {
+		return nil, err
+	}
+	a.IP = addr.IP
+	return addr.IP, nil
+}
+
 func (r *Address) ReadFrom(reader io.Reader) (err error) {
 	b := make([]byte, 512)
 	offset := 1
