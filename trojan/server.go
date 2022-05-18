@@ -36,17 +36,18 @@ type Worker interface {
 
 type Server struct {
 	sync.RWMutex
-	front       string
-	tcpListener net.Listener
-	worker      Worker
-	connChan    chan tunnel.Conn
-	packetChan  chan tunnel.PacketConn
-	ctx         context.Context
-	cancel      context.CancelFunc
-	log         Logger
+	front         string
+	tcpListener   net.Listener
+	worker        Worker
+	authenticator bool
+	connChan      chan tunnel.Conn
+	packetChan    chan tunnel.PacketConn
+	ctx           context.Context
+	cancel        context.CancelFunc
+	log           Logger
 }
 
-func NewServer(front, addr string, tlsConfig *tls.Config, worker Worker, ctx context.Context, log Logger) (*Server, error) {
+func NewServer(front, addr string, tlsConfig *tls.Config, ctx context.Context, log Logger) (*Server, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	tcpListener, err := tls.Listen("tcp", addr, tlsConfig)
 	if err != nil {
@@ -54,18 +55,23 @@ func NewServer(front, addr string, tlsConfig *tls.Config, worker Worker, ctx con
 		return nil, fmt.Errorf("failed to create tcp listener %v %v", addr, err.Error())
 	}
 	s := &Server{
-		front:       front,
-		tcpListener: tcpListener,
-		worker:      worker,
-		connChan:    make(chan tunnel.Conn, 32),
-		packetChan:  make(chan tunnel.PacketConn, 32),
-		ctx:         ctx,
-		cancel:      cancel,
-		log:         log,
+		front:         front,
+		tcpListener:   tcpListener,
+		authenticator: false,
+		connChan:      make(chan tunnel.Conn, 32),
+		packetChan:    make(chan tunnel.PacketConn, 32),
+		ctx:           ctx,
+		cancel:        cancel,
+		log:           log,
 	}
 	log.Info("trojan server created", addr)
 	go s.acceptLoop()
 	return s, nil
+}
+
+func (s *Server) AuthWorker(worker Worker) {
+	s.worker = worker
+	s.authenticator = true
 }
 
 func (s *Server) Close() error {
@@ -113,6 +119,11 @@ func (s *Server) acceptLoop() {
 			if err != nil {
 				c.Close()
 				s.log.Errorf("trojan read hash error %v", err.Error())
+				return
+			}
+			if !s.authenticator {
+				s.log.Errorf("authenticator is not load")
+				s.frontPage(c, b[:n])
 				return
 			}
 
