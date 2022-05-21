@@ -6,6 +6,7 @@ import (
 
 type Conn interface {
 	net.Conn
+	Hash() string
 	Metadata() *Metadata
 }
 
