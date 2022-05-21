@@ -10,7 +10,12 @@ import (
 type Conn struct {
 	net.Conn
 	metadata *tunnel.Metadata
+	hash     []byte
 	payload  []byte
+}
+
+func (c *Conn) Hash() string {
+	return string(c.hash)
 }
 
 func (c *Conn) Metadata() *tunnel.Metadata {
