@@ -40,6 +40,7 @@ type Logger interface {
 	Infof(string, ...interface{})
 	Error(...interface{})
 	Errorf(string, ...interface{})
+	Debug(...interface{})
 }
 
 type Conn interface {
