@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/koomox/goproxy"
 	"github.com/koomox/goproxy/tunnel"
 	"io"
 	"net"
@@ -22,15 +23,7 @@ const (
 	MaxPacketSize = 8 * 1024
 )
 
-type Logger interface {
-	Info(...interface{})
-	Infof(string, ...interface{})
-	Error(...interface{})
-	Errorf(string, ...interface{})
-	Debug(...interface{})
-}
-
-type Worker interface {
+type AuthHook interface {
 	Auth(string) bool
 }
 
@@ -38,16 +31,16 @@ type Server struct {
 	sync.RWMutex
 	front         string
 	tcpListener   net.Listener
-	worker        Worker
+	hook          AuthHook
 	authenticator bool
 	connChan      chan tunnel.Conn
 	packetChan    chan tunnel.PacketConn
 	ctx           context.Context
 	cancel        context.CancelFunc
-	log           Logger
+	log           goproxy.Logger
 }
 
-func NewServer(front, addr string, tlsConfig *tls.Config, ctx context.Context, log Logger) (*Server, error) {
+func NewServer(front, addr string, tlsConfig *tls.Config, ctx context.Context, log goproxy.Logger) (*Server, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	tcpListener, err := tls.Listen("tcp", addr, tlsConfig)
 	if err != nil {
@@ -69,8 +62,8 @@ func NewServer(front, addr string, tlsConfig *tls.Config, ctx context.Context, l
 	return s, nil
 }
 
-func (s *Server) AuthWorker(worker Worker) {
-	s.worker = worker
+func (s *Server) AddAuthHook(auth AuthHook) {
+	s.hook = auth
 	s.authenticator = true
 }
 
@@ -133,7 +126,7 @@ func (s *Server) acceptLoop() {
 				return
 			}
 			password := string(b[:])
-			if !s.worker.Auth(password) {
+			if !s.hook.Auth(password) {
 				s.log.Errorf("trojan invalid hash %v", password)
 				s.frontPage(c, b[:])
 				return

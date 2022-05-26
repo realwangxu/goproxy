@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/koomox/goproxy"
 	"github.com/koomox/goproxy/tunnel"
 	"io"
 	"net"
@@ -19,14 +20,6 @@ const (
 	MaxPacketSize = 8 * 1024
 )
 
-type Logger interface {
-	Info(...interface{})
-	Infof(string, ...interface{})
-	Error(...interface{})
-	Errorf(string, ...interface{})
-	Debug(...interface{})
-}
-
 type Server struct {
 	sync.RWMutex
 	tcpListener net.Listener
@@ -35,7 +28,7 @@ type Server struct {
 	connChan    chan tunnel.Conn
 	packetChan  chan tunnel.PacketConn
 	mapping     map[string]*PacketConn
-	log         Logger
+	log         goproxy.Logger
 	ctx         context.Context
 	cancel      context.CancelFunc
 }
@@ -46,7 +39,7 @@ func (s *Server) Close() error {
 	return s.udpListener.Close()
 }
 
-func NewServer(addr string, ctx context.Context, log Logger) (*Server, error) {
+func NewServer(addr string, ctx context.Context, log goproxy.Logger) (*Server, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	tcpListener, err := net.Listen("tcp", addr)
 	if err != nil {
