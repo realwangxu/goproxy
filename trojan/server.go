@@ -25,7 +25,7 @@ const (
 
 type Hook interface {
 	Auth(string) bool
-	Filter(string, *tunnel.Metadata) string
+	Router(string, *tunnel.Metadata) string
 	Forward(string, *tunnel.Metadata) (net.Conn, error)
 }
 
@@ -153,7 +153,7 @@ func (s *Server) acceptLoop() {
 				return
 			}
 
-			switch s.hook.Filter(password, m) {
+			switch s.hook.Router(password, m) {
 			case goproxy.ActionAccept, goproxy.ActionProxy:
 				switch m.Command {
 				case Connect:
