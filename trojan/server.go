@@ -23,15 +23,17 @@ const (
 	MaxPacketSize = 8 * 1024
 )
 
-type AuthHook interface {
+type Hook interface {
 	Auth(string) bool
+	Filter(string, *tunnel.Metadata) string
+	Forward(string, *tunnel.Metadata) (net.Conn, error)
 }
 
 type Server struct {
 	sync.RWMutex
 	front         string
 	tcpListener   net.Listener
-	hook          AuthHook
+	hook          Hook
 	authenticator bool
 	connChan      chan tunnel.Conn
 	packetChan    chan tunnel.PacketConn
@@ -62,8 +64,8 @@ func NewServer(front, addr string, tlsConfig *tls.Config, ctx context.Context, l
 	return s, nil
 }
 
-func (s *Server) AddAuthHook(auth AuthHook) {
-	s.hook = auth
+func (s *Server) AddHook(hook Hook) {
+	s.hook = hook
 	s.authenticator = true
 }
 
@@ -145,24 +147,61 @@ func (s *Server) acceptLoop() {
 				s.log.Errorf("trojan read address error %v", err.Error())
 				return
 			}
-
 			if _, err = io.ReadFull(c, crlf[:]); err != nil {
 				c.Close()
 				s.log.Errorf("trojan read CRLF error %v", err.Error())
 				return
 			}
-			switch m.Command {
-			case Connect:
-				s.connChan <- &InboundConn{Conn: c, hash: password, metadata: m}
-				s.log.Debug("trojan tcp connection")
-			case Associate:
-				s.packetChan <- &PacketConn{&InboundConn{Conn: c, hash: password, metadata: m}}
-				s.log.Debug("trojan udp connection")
-			default:
+
+			filter := s.hook.Filter(password, m)
+			if filter == goproxy.ActionAccept || filter == goproxy.ActionProxy {
+				switch m.Command {
+				case Connect:
+					s.connChan <- &InboundConn{Conn: c, hash: password, metadata: m}
+					s.log.Debug("trojan tcp connection")
+				case Associate:
+					s.packetChan <- &PacketConn{&InboundConn{Conn: c, hash: password, metadata: m}}
+					s.log.Debug("trojan udp connection")
+				default:
+					c.Close()
+					s.log.Errorf("unknown trojan command %v", m.Command)
+				}
+				return
+			}
+			if filter == goproxy.ActionDirect || filter == goproxy.ActionReject {
 				c.Close()
-				s.log.Errorf("unknown trojan command %v", m.Command)
+				return
+			}
+			if filter == goproxy.ActionForward {
+				s.Forward(password, m, c)
 			}
 		}(c)
+	}
+}
+
+func (s *Server) Forward(password string, metadata *tunnel.Metadata, c net.Conn) {
+	defer c.Close()
+	rc, err := s.hook.Forward(password, metadata)
+	if err != nil {
+		return
+	}
+	defer rc.Close()
+
+	errChan := make(chan error, 2)
+	copyConn := func(left, right net.Conn) {
+		_, errInfo := io.Copy(left, right)
+		errChan <- errInfo
+	}
+	go copyConn(c, rc)
+	go copyConn(rc, c)
+	select {
+	case ch := <-errChan:
+		if ch != nil {
+			s.log.Errorf("trojan forward error %v", ch.Error())
+		}
+	case <-s.ctx.Done():
+		s.log.Debug("trojan forward closed")
+		return
 	}
 }
 

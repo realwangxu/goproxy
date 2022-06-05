@@ -13,6 +13,7 @@ const (
 	ActionProxy  = "PROXY"
 	ActionReject = "REJECT"
 	ActionDirect = "DIRECT"
+	ActionForward = "FORWARD"
 )
 
 type Metadata interface {
