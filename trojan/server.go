@@ -153,8 +153,8 @@ func (s *Server) acceptLoop() {
 				return
 			}
 
-			filter := s.hook.Filter(password, m)
-			if filter == goproxy.ActionAccept || filter == goproxy.ActionProxy {
+			switch s.hook.Filter(password, m) {
+			case goproxy.ActionAccept, goproxy.ActionProxy:
 				switch m.Command {
 				case Connect:
 					s.connChan <- &InboundConn{Conn: c, hash: password, metadata: m}
@@ -166,13 +166,10 @@ func (s *Server) acceptLoop() {
 					c.Close()
 					s.log.Errorf("unknown trojan command %v", m.Command)
 				}
-				return
-			}
-			if filter == goproxy.ActionDirect || filter == goproxy.ActionReject {
+			case goproxy.ActionDirect, goproxy.ActionReject:
 				c.Close()
 				return
-			}
-			if filter == goproxy.ActionForward {
+			case goproxy.ActionForward:
 				s.Forward(password, m, c)
 			}
 		}(c)
