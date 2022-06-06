@@ -21,11 +21,17 @@ const (
 	Associate byte = 0x03
 
 	MaxPacketSize = 8 * 1024
+
+	ActionAccept  byte = 0x01
+	ActionProxy   byte = 0x02
+	ActionReject  byte = 0x03
+	ActionDirect  byte = 0x04
+	ActionForward byte = 0x05
 )
 
 type Hook interface {
 	Auth(string) bool
-	Router(string, *tunnel.Metadata) string
+	Router(string, *tunnel.Metadata) byte
 	Forward(string, *tunnel.Metadata) (net.Conn, error)
 }
 
@@ -141,8 +147,8 @@ func (s *Server) acceptLoop() {
 				return
 			}
 
-			m := &tunnel.Metadata{}
-			if err = m.ReadFrom(c); err != nil {
+			metadata := &tunnel.Metadata{}
+			if err = metadata.ReadFrom(c); err != nil {
 				c.Close()
 				s.log.Errorf("trojan read address error %v", err.Error())
 				return
@@ -153,24 +159,24 @@ func (s *Server) acceptLoop() {
 				return
 			}
 
-			switch s.hook.Router(password, m) {
-			case goproxy.ActionAccept, goproxy.ActionProxy:
-				switch m.Command {
+			switch s.hook.Router(password, metadata) {
+			case ActionAccept, ActionProxy:
+				switch metadata.Command {
 				case Connect:
-					s.connChan <- &InboundConn{Conn: c, hash: password, metadata: m}
+					s.connChan <- &InboundConn{Conn: c, hash: password, metadata: metadata}
 					s.log.Debug("trojan tcp connection")
 				case Associate:
-					s.packetChan <- &PacketConn{&InboundConn{Conn: c, hash: password, metadata: m}}
+					s.packetChan <- &PacketConn{&InboundConn{Conn: c, hash: password, metadata: metadata}}
 					s.log.Debug("trojan udp connection")
 				default:
 					c.Close()
-					s.log.Errorf("unknown trojan command %v", m.Command)
+					s.log.Errorf("unknown trojan command %v", metadata.Command)
 				}
-			case goproxy.ActionDirect, goproxy.ActionReject:
+			case ActionDirect, ActionReject:
 				c.Close()
 				return
-			case goproxy.ActionForward:
-				s.Forward(password, m, c)
+			case ActionForward:
+				s.Forward(password, metadata, c)
 			}
 		}(c)
 	}
