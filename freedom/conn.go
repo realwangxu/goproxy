@@ -22,7 +22,7 @@ func (c *PacketConn) WriteWithMetadata(p []byte, m *tunnel.Metadata) (int, error
 }
 
 func (c *PacketConn) ReadWithMetadata(p []byte) (int, *tunnel.Metadata, error) {
-	if err := c.SetReadDeadline(time.Now().Add(c.timeout)); err != nil {
+	if err := c.SetDeadline(time.Now().Add(c.timeout)); err != nil {
 		return 0, nil, err
 	}
 	n, addr, err := c.ReadFrom(p)
@@ -41,6 +41,9 @@ func (c *PacketConn) ReadWithMetadata(p []byte) (int, *tunnel.Metadata, error) {
 
 func (c *PacketConn) WriteTo(p []byte, addr net.Addr) (int, error) {
 	if udpAddr, ok := addr.(*net.UDPAddr); ok {
+		if err := c.SetDeadline(time.Now().Add(c.timeout)); err != nil {
+			return 0, err
+		}
 		return c.WriteToUDP(p, udpAddr)
 	}
 	ip, err := addr.(*tunnel.Address).ResolveIP()
@@ -50,6 +53,9 @@ func (c *PacketConn) WriteTo(p []byte, addr net.Addr) (int, error) {
 	udpAddr := &net.UDPAddr{
 		IP:   ip,
 		Port: addr.(*tunnel.Address).Port,
+	}
+	if err = c.SetDeadline(time.Now().Add(c.timeout)); err != nil {
+		return 0, err
 	}
 	return c.WriteToUDP(p, udpAddr)
 }
@@ -63,13 +69,16 @@ func DialPacket(timeout time.Duration) (tunnel.PacketConn, error) {
 }
 
 func (c *Conn) Read(b []byte) (int, error) {
-	if err := c.Conn.SetReadDeadline(time.Now().Add(c.timeout)); err != nil {
+	if err := c.Conn.SetDeadline(time.Now().Add(c.timeout)); err != nil {
 		return 0, err
 	}
 	return c.Conn.Read(b)
 }
 
 func (c *Conn) Write(b []byte) (int, error) {
+	if err := c.Conn.SetDeadline(time.Now().Add(c.timeout)); err != nil {
+		return 0, err
+	}
 	return c.Conn.Write(b)
 }
 
