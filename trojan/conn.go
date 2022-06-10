@@ -54,7 +54,6 @@ func (c *OutboundConn) WriteHeader(payload []byte) (bool, error) {
 }
 
 func (c *OutboundConn) Write(p []byte) (int, error) {
-	c.Conn.SetDeadline(time.Now().Add(writeDeadlineTimeout))
 	written, err := c.WriteHeader(p)
 	if err != nil {
 		return 0, fmt.Errorf("trojan failed to flush header with payload")
@@ -88,7 +87,6 @@ func (c *InboundConn) Hash() string {
 }
 
 func (c *InboundConn) Write(b []byte) (int, error) {
-	c.Conn.SetDeadline(time.Now().Add(writeDeadlineTimeout))
 	return c.Conn.Write(b)
 }
 
