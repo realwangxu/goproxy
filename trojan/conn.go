@@ -6,12 +6,6 @@ import (
 	"github.com/koomox/goproxy/tunnel"
 	"net"
 	"sync"
-	"time"
-)
-
-const (
-	writeDeadlineTimeout = time.Second * 3
-	readDeadlineTimeout  = time.Second * 30
 )
 
 type OutboundConn struct {
