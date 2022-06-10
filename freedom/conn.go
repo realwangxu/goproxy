@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/koomox/goproxy/tunnel"
 	"net"
+	"time"
 )
 
 type PacketConn struct {
@@ -15,6 +16,9 @@ func (c *PacketConn) WriteWithMetadata(p []byte, m *tunnel.Metadata) (int, error
 }
 
 func (c *PacketConn) ReadWithMetadata(p []byte) (int, *tunnel.Metadata, error) {
+	if err := c.SetReadDeadline(time.Now().Add(time.Minute * 5)); err != nil {
+		return 0, nil, err
+	}
 	n, addr, err := c.ReadFrom(p)
 	if err != nil {
 		return 0, nil, err
