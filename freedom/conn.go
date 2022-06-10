@@ -83,7 +83,7 @@ func (c *Conn) Write(b []byte) (int, error) {
 }
 
 func DialConn(network, address string, timeout time.Duration) (*Conn, error) {
-	conn, err := net.Dial(network, address)
+	conn, err := net.DialTimeout(network, address, time.Second*3)
 	if err != nil {
 		return nil, err
 	}
