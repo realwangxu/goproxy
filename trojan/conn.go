@@ -66,7 +66,6 @@ func (c *OutboundConn) Write(p []byte) (int, error) {
 }
 
 func (c *OutboundConn) Read(b []byte) (int, error) {
-	c.Conn.SetDeadline(time.Now().Add(readDeadlineTimeout))
 	return c.Conn.Read(b)
 }
 
@@ -94,6 +93,5 @@ func (c *InboundConn) Write(b []byte) (int, error) {
 }
 
 func (c *InboundConn) Read(b []byte) (int, error) {
-	c.Conn.SetDeadline(time.Now().Add(readDeadlineTimeout))
 	return c.Conn.Read(b)
 }
