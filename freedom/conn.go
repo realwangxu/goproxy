@@ -11,6 +11,10 @@ type PacketConn struct {
 	*net.UDPConn
 }
 
+type Conn struct {
+	net.Conn
+}
+
 func (c *PacketConn) WriteWithMetadata(p []byte, m *tunnel.Metadata) (int, error) {
 	return c.WriteTo(p, m.Address)
 }
@@ -54,4 +58,23 @@ func DialPacket() (tunnel.PacketConn, error) {
 		return nil, fmt.Errorf("freedom failed to listen udp socket %v", err.Error())
 	}
 	return &PacketConn{UDPConn: conn.(*net.UDPConn)}, nil
+}
+
+func (c *Conn) Read(b []byte) (int, error) {
+	if err := c.Conn.SetReadDeadline(time.Now().Add(time.Second * 5)); err != nil {
+		return 0, err
+	}
+	return c.Conn.Read(b)
+}
+
+func (c *Conn) Write(b []byte) (int, error) {
+	return c.Conn.Write(b)
+}
+
+func DialConn(network, address string) (*Conn, error) {
+	conn, err := net.Dial(network, address)
+	if err != nil {
+		return nil, err
+	}
+	return &Conn{conn}, nil
 }
