@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	deadlineTimeout = time.Second * 5
+	writeDeadlineTimeout = time.Second * 3
+	readDeadlineTimeout  = time.Second * 30
 )
 
 type OutboundConn struct {
@@ -44,7 +45,6 @@ func (c *OutboundConn) WriteHeader(payload []byte) (bool, error) {
 		if payload != nil {
 			buf.Write(payload)
 		}
-		c.Conn.SetDeadline(time.Now().Add(deadlineTimeout))
 		_, err = c.Conn.Write(buf.Bytes())
 		if err == nil {
 			written = true
@@ -54,6 +54,7 @@ func (c *OutboundConn) WriteHeader(payload []byte) (bool, error) {
 }
 
 func (c *OutboundConn) Write(p []byte) (int, error) {
+	c.Conn.SetDeadline(time.Now().Add(writeDeadlineTimeout))
 	written, err := c.WriteHeader(p)
 	if err != nil {
 		return 0, fmt.Errorf("trojan failed to flush header with payload")
@@ -61,12 +62,11 @@ func (c *OutboundConn) Write(p []byte) (int, error) {
 	if written {
 		return len(p), nil
 	}
-	c.Conn.SetDeadline(time.Now().Add(deadlineTimeout))
 	return c.Conn.Write(p)
 }
 
 func (c *OutboundConn) Read(b []byte) (int, error) {
-	c.Conn.SetDeadline(time.Now().Add(deadlineTimeout))
+	c.Conn.SetDeadline(time.Now().Add(readDeadlineTimeout))
 	return c.Conn.Read(b)
 }
 
@@ -89,11 +89,11 @@ func (c *InboundConn) Hash() string {
 }
 
 func (c *InboundConn) Write(b []byte) (int, error) {
-	c.Conn.SetDeadline(time.Now().Add(deadlineTimeout))
+	c.Conn.SetDeadline(time.Now().Add(writeDeadlineTimeout))
 	return c.Conn.Write(b)
 }
 
 func (c *InboundConn) Read(b []byte) (int, error) {
-	c.Conn.SetDeadline(time.Now().Add(deadlineTimeout))
+	c.Conn.SetDeadline(time.Now().Add(readDeadlineTimeout))
 	return c.Conn.Read(b)
 }
