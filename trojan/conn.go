@@ -6,6 +6,7 @@ import (
 	"github.com/koomox/goproxy/tunnel"
 	"net"
 	"sync"
+	"time"
 )
 
 type OutboundConn struct {
@@ -55,10 +56,12 @@ func (c *OutboundConn) Write(p []byte) (int, error) {
 	if written {
 		return len(p), nil
 	}
+	c.Conn.SetWriteDeadline(time.Now().Add(time.Second))
 	return c.Conn.Write(p)
 }
 
 func (c *OutboundConn) Read(b []byte) (int, error) {
+	c.Conn.SetReadDeadline(time.Now().Add(time.Second))
 	return c.Conn.Read(b)
 }
 
@@ -81,9 +84,11 @@ func (c *InboundConn) Hash() string {
 }
 
 func (c *InboundConn) Write(b []byte) (int, error) {
+	c.Conn.SetWriteDeadline(time.Now().Add(time.Second))
 	return c.Conn.Write(b)
 }
 
 func (c *InboundConn) Read(b []byte) (int, error) {
+	c.Conn.SetReadDeadline(time.Now().Add(time.Second))
 	return c.Conn.Read(b)
 }
