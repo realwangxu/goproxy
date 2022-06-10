@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+const (
+	deadlineTimeout = time.Second * 2
+)
+
 type OutboundConn struct {
 	net.Conn
 	hash              []byte
@@ -40,6 +44,7 @@ func (c *OutboundConn) WriteHeader(payload []byte) (bool, error) {
 		if payload != nil {
 			buf.Write(payload)
 		}
+		c.Conn.SetWriteDeadline(time.Now().Add(deadlineTimeout))
 		_, err = c.Conn.Write(buf.Bytes())
 		if err == nil {
 			written = true
@@ -56,12 +61,12 @@ func (c *OutboundConn) Write(p []byte) (int, error) {
 	if written {
 		return len(p), nil
 	}
-	c.Conn.SetWriteDeadline(time.Now().Add(time.Second))
+	c.Conn.SetWriteDeadline(time.Now().Add(deadlineTimeout))
 	return c.Conn.Write(p)
 }
 
 func (c *OutboundConn) Read(b []byte) (int, error) {
-	c.Conn.SetReadDeadline(time.Now().Add(time.Second))
+	c.Conn.SetReadDeadline(time.Now().Add(deadlineTimeout))
 	return c.Conn.Read(b)
 }
 
@@ -84,11 +89,11 @@ func (c *InboundConn) Hash() string {
 }
 
 func (c *InboundConn) Write(b []byte) (int, error) {
-	c.Conn.SetWriteDeadline(time.Now().Add(time.Second))
+	c.Conn.SetWriteDeadline(time.Now().Add(deadlineTimeout))
 	return c.Conn.Write(b)
 }
 
 func (c *InboundConn) Read(b []byte) (int, error) {
-	c.Conn.SetReadDeadline(time.Now().Add(time.Second))
+	c.Conn.SetReadDeadline(time.Now().Add(deadlineTimeout))
 	return c.Conn.Read(b)
 }
