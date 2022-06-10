@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	deadlineTimeout = time.Second * 2
+	deadlineTimeout = time.Second * 5
 )
 
 type OutboundConn struct {
