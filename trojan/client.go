@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-func Dial(network, address, ServerName string, tlsCfg *tls.Config) (conn net.Conn, err error) {
-	rc, err := net.DialTimeout(network, address, time.Second*3)
+func Dial(network, address, ServerName string, timeout time.Duration, tlsCfg *tls.Config) (conn net.Conn, err error) {
+	rc, err := net.DialTimeout(network, address, timeout)
 	if err != nil {
 		return nil, err
 	}

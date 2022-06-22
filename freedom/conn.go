@@ -8,13 +8,17 @@ import (
 )
 
 type PacketConn struct {
-	timeout time.Duration
+	deadline time.Duration
 	*net.UDPConn
 }
 
 type Conn struct {
-	timeout time.Duration
+	deadline time.Duration
 	net.Conn
+}
+
+func (c *PacketConn) Close() error {
+	return c.UDPConn.Close()
 }
 
 func (c *PacketConn) WriteWithMetadata(p []byte, m *tunnel.Metadata) (int, error) {
@@ -22,7 +26,7 @@ func (c *PacketConn) WriteWithMetadata(p []byte, m *tunnel.Metadata) (int, error
 }
 
 func (c *PacketConn) ReadWithMetadata(p []byte) (int, *tunnel.Metadata, error) {
-	if err := c.SetDeadline(time.Now().Add(c.timeout)); err != nil {
+	if err := c.UDPConn.SetDeadline(time.Now().Add(c.deadline)); err != nil {
 		return 0, nil, err
 	}
 	n, addr, err := c.ReadFrom(p)
@@ -41,7 +45,7 @@ func (c *PacketConn) ReadWithMetadata(p []byte) (int, *tunnel.Metadata, error) {
 
 func (c *PacketConn) WriteTo(p []byte, addr net.Addr) (int, error) {
 	if udpAddr, ok := addr.(*net.UDPAddr); ok {
-		if err := c.SetDeadline(time.Now().Add(c.timeout)); err != nil {
+		if err := c.UDPConn.SetDeadline(time.Now().Add(c.deadline)); err != nil {
 			return 0, err
 		}
 		return c.WriteToUDP(p, udpAddr)
@@ -54,38 +58,42 @@ func (c *PacketConn) WriteTo(p []byte, addr net.Addr) (int, error) {
 		IP:   ip,
 		Port: addr.(*tunnel.Address).Port,
 	}
-	if err = c.SetDeadline(time.Now().Add(c.timeout)); err != nil {
+	if err = c.UDPConn.SetDeadline(time.Now().Add(c.deadline)); err != nil {
 		return 0, err
 	}
 	return c.WriteToUDP(p, udpAddr)
 }
 
-func DialPacket(timeout time.Duration) (tunnel.PacketConn, error) {
+func DialPacket(deadline time.Duration) (tunnel.PacketConn, error) {
 	conn, err := net.ListenPacket("udp", "")
 	if err != nil {
 		return nil, fmt.Errorf("freedom failed to listen udp socket %v", err.Error())
 	}
-	return &PacketConn{UDPConn: conn.(*net.UDPConn), timeout: timeout}, nil
+	return &PacketConn{UDPConn: conn.(*net.UDPConn), deadline: deadline}, nil
+}
+
+func (c *Conn) Close() error {
+	return c.Conn.Close()
 }
 
 func (c *Conn) Read(b []byte) (int, error) {
-	if err := c.Conn.SetDeadline(time.Now().Add(c.timeout)); err != nil {
+	if err := c.Conn.SetDeadline(time.Now().Add(c.deadline)); err != nil {
 		return 0, err
 	}
 	return c.Conn.Read(b)
 }
 
 func (c *Conn) Write(b []byte) (int, error) {
-	if err := c.Conn.SetDeadline(time.Now().Add(c.timeout)); err != nil {
+	if err := c.Conn.SetDeadline(time.Now().Add(c.deadline)); err != nil {
 		return 0, err
 	}
 	return c.Conn.Write(b)
 }
 
-func DialConn(network, address string, timeout time.Duration) (*Conn, error) {
-	conn, err := net.DialTimeout(network, address, time.Second*3)
+func DialConn(network, address string, timeout, deadline time.Duration) (*Conn, error) {
+	conn, err := net.DialTimeout(network, address, timeout)
 	if err != nil {
 		return nil, err
 	}
-	return &Conn{Conn: conn, timeout: timeout}, nil
+	return &Conn{Conn: conn, deadline: deadline}, nil
 }
