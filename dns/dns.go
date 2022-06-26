@@ -35,8 +35,7 @@ func New(servers []string, timeout time.Duration) *Server {
 	for i := range servers {
 		servers[i] = net.JoinHostPort(servers[i], "53")
 	}
-	server := &Server{servers: servers, timeout: timeout, cache: make(map[string]*Resolver), RetryTimes: len(servers) * 2, r: rand.New(rand.NewSource(time.Now().UnixNano()))}
-	return server
+	return &Server{servers: servers, timeout: timeout, cache: make(map[string]*Resolver), RetryTimes: len(servers) * 2, r: rand.New(rand.NewSource(time.Now().UnixNano()))}
 }
 
 func WithBackground(server *Server, timeout time.Duration) {
